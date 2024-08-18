@@ -32,45 +32,37 @@
 #include <ks/dht/endpoint.hpp>
 #include <ks/dht/session_base.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
-class first_session final
-        : public session_base
+class first_session final : public session_base
 {
 public:
-    KS_DHT_EXPORT
-    first_session
-        ( endpoint const& listen_on_ipv4 = endpoint{ "0.0.0.0", DEFAULT_PORT }
-        , endpoint const& listen_on_ipv6 = endpoint{ "::", DEFAULT_PORT } );
+  KS_DHT_EXPORT
+  first_session(endpoint const& listen_on_ipv4 = endpoint{ "0.0.0.0",
+                                                           DEFAULT_PORT },
+                endpoint const& listen_on_ipv6 = endpoint{ "::",
+                                                           DEFAULT_PORT });
 
-    KS_DHT_EXPORT
-    ~first_session
-        ( void );
+  KS_DHT_EXPORT
+  ~first_session(void);
 
-    first_session
-        ( first_session const& )
-        = delete;
+  first_session(first_session const&) = delete;
 
-    first_session&
-    operator=
-        ( first_session const& )
-        = delete;
+  first_session& operator=(first_session const&) = delete;
 
-    KS_DHT_EXPORT
-    std::error_code
-    run
-        ( void );
+  KS_DHT_EXPORT
+  std::error_code run(void);
 
-    KS_DHT_EXPORT
-    void
-    abort
-        ( void );
+  KS_DHT_EXPORT
+  void abort(void);
 
 private:
-    struct impl;
+  struct impl;
 
 private:
-    std::unique_ptr< impl > impl_;
+  std::unique_ptr<impl> impl_;
 };
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

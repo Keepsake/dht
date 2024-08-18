@@ -24,266 +24,227 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <cstdint>
+#include <algorithm>
 #include <array>
+#include <cstdint>
+#include <functional>
 #include <iosfwd>
 #include <random>
 #include <string>
 #include <vector>
-#include <functional>
-#include <algorithm>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 ///
 class id final
 {
 public:
-    ///
-    static constexpr std::size_t BIT_SIZE = 160;
+  ///
+  static constexpr std::size_t BIT_SIZE = 160;
 
-    ///
-    using block_type = std::uint8_t;
+  ///
+  using block_type = std::uint8_t;
 
-    ///
-    static constexpr std::size_t BYTE_PER_BLOCK = sizeof( block_type );
+  ///
+  static constexpr std::size_t BYTE_PER_BLOCK = sizeof(block_type);
 
-    ///
-    static constexpr std::size_t BIT_PER_BLOCK = BYTE_PER_BLOCK * 8;
+  ///
+  static constexpr std::size_t BIT_PER_BLOCK = BYTE_PER_BLOCK * 8;
 
-    ///
-    static constexpr std::size_t BLOCKS_COUNT = BIT_SIZE / BIT_PER_BLOCK;
+  ///
+  static constexpr std::size_t BLOCKS_COUNT = BIT_SIZE / BIT_PER_BLOCK;
 
-    ///
-    using blocks_type = std::array< block_type, BLOCKS_COUNT >;
+  ///
+  using blocks_type = std::array<block_type, BLOCKS_COUNT>;
 
-    ///
-    using value_to_hash_type = std::vector< std::uint8_t >;
+  ///
+  using value_to_hash_type = std::vector<std::uint8_t>;
 
+  /**
+   *
+   */
+  template<typename BlockType>
+  struct abstract_reference final
+  {
     /**
      *
      */
-    template< typename BlockType >
-    struct abstract_reference final
+    explicit operator bool const(void) const noexcept
     {
-        /**
-         *
-         */
-        explicit
-        operator const bool
-            ( void )
-            const
-            noexcept
-        { return ( current_block_ & mask_ ) != 0; }
-
-        /**
-         *
-         */
-        abstract_reference &
-        operator=
-            ( bool value ) noexcept
-        {
-            if ( value )
-                current_block_ |= mask_;
-            else
-                current_block_ &= ~mask_;
-
-            return *this;
-        }
-
-        /**
-         *
-         */
-        template< typename OtherBlockType >
-        bool
-        operator==
-            ( abstract_reference< OtherBlockType > const& o )
-            const
-            noexcept
-        { return static_cast< bool >( o ) == static_cast< bool >( *this ); }
-
-        ///
-        BlockType & current_block_;
-        ///
-        block_type const mask_;
-    };
-
-    ///
-    using reference = abstract_reference< block_type >;
-
-    ///
-    using const_reference = abstract_reference< block_type const >;
-
-    /**
-     *  @brief Construct a null id.
-     */
-    id
-        ( void )
-            : blocks_{ }
-    { }
-
-    /**
-     *  @brief Construct a random id.
-     */
-    explicit
-    id
-        ( std::default_random_engine & random_engine );
-
-    /**
-     *  @brief Construct an id from a string representation.
-     */
-    explicit
-    id
-        ( std::string value );
-
-    /**
-     *  @brief Construct an id by hashing a value.
-     */
-    explicit
-    id
-        ( value_to_hash_type const& value );
-
-    /**
-     *  @note From msb to lsb.
-     */
-    blocks_type::iterator
-    begin
-        ( void )
-    { return blocks_.begin(); }
-
-    /**
-     *  @note From msb to lsb.
-     */
-    blocks_type::iterator
-    end
-        ( void )
-    { return blocks_.end(); }
-
-    /**
-     *  @note From msb to lsb.
-     */
-    blocks_type::const_iterator
-    begin
-        ( void )
-        const
-    { return blocks_.begin(); }
-
-    /**
-     *  @note From msb to lsb.
-     */
-    blocks_type::const_iterator
-    end
-        ( void )
-        const
-    { return blocks_.end(); }
+      return (current_block_ & mask_) != 0;
+    }
 
     /**
      *
      */
-    bool
-    operator==
-        ( id const& o )
-        const
-    { return o.blocks_ == blocks_; }
+    abstract_reference& operator=(bool value) noexcept
+    {
+      if (value)
+        current_block_ |= mask_;
+      else
+        current_block_ &= ~mask_;
+
+      return *this;
+    }
 
     /**
      *
      */
-    bool
-    operator!=
-        ( id const& o )
-        const
-    { return ! (o == *this); }
+    template<typename OtherBlockType>
+    bool operator==(abstract_reference<OtherBlockType> const& o) const noexcept
+    {
+      return static_cast<bool>(o) == static_cast<bool>(*this);
+    }
 
-    /**
-     *  @brief Return a const reference to a bit of the id.
-     *  @param index The index of the bit (from 0 to BIT_SIZE - 1).
-     *  @note Index 0 is the msb.
-     */
-    const_reference
-    operator[]
-        ( std::size_t index )
-        const
-    { return const_reference{ get_block( index ), get_mask( index ) }; }
+    ///
+    BlockType& current_block_;
+    ///
+    block_type const mask_;
+  };
 
-    /**
-     *  @brief Return a reference to a bit of the id.
-     *  @param index The index of the bit (from 0 to BIT_SIZE - 1).
-     *  @note Index 0 is the msb.
-     */
-    reference
-    operator[]
-        ( std::size_t index )
-    { return reference{ get_block( index ), get_mask( index ) }; }
+  ///
+  using reference = abstract_reference<block_type>;
+
+  ///
+  using const_reference = abstract_reference<block_type const>;
+
+  /**
+   *  @brief Construct a null id.
+   */
+  id(void)
+    : blocks_{}
+  {
+  }
+
+  /**
+   *  @brief Construct a random id.
+   */
+  explicit id(std::default_random_engine& random_engine);
+
+  /**
+   *  @brief Construct an id from a string representation.
+   */
+  explicit id(std::string value);
+
+  /**
+   *  @brief Construct an id by hashing a value.
+   */
+  explicit id(value_to_hash_type const& value);
+
+  /**
+   *  @note From msb to lsb.
+   */
+  blocks_type::iterator begin(void) { return blocks_.begin(); }
+
+  /**
+   *  @note From msb to lsb.
+   */
+  blocks_type::iterator end(void) { return blocks_.end(); }
+
+  /**
+   *  @note From msb to lsb.
+   */
+  blocks_type::const_iterator begin(void) const { return blocks_.begin(); }
+
+  /**
+   *  @note From msb to lsb.
+   */
+  blocks_type::const_iterator end(void) const { return blocks_.end(); }
+
+  /**
+   *
+   */
+  bool operator==(id const& o) const { return o.blocks_ == blocks_; }
+
+  /**
+   *
+   */
+  bool operator!=(id const& o) const { return !(o == *this); }
+
+  /**
+   *  @brief Return a const reference to a bit of the id.
+   *  @param index The index of the bit (from 0 to BIT_SIZE - 1).
+   *  @note Index 0 is the msb.
+   */
+  const_reference operator[](std::size_t index) const
+  {
+    return const_reference{ get_block(index), get_mask(index) };
+  }
+
+  /**
+   *  @brief Return a reference to a bit of the id.
+   *  @param index The index of the bit (from 0 to BIT_SIZE - 1).
+   *  @note Index 0 is the msb.
+   */
+  reference operator[](std::size_t index)
+  {
+    return reference{ get_block(index), get_mask(index) };
+  }
 
 private:
-    /**
-     *
-     */
-    block_type &
-    get_block
-        ( std::size_t index )
-    { return blocks_[ index / BIT_PER_BLOCK ]; }
+  /**
+   *
+   */
+  block_type& get_block(std::size_t index)
+  {
+    return blocks_[index / BIT_PER_BLOCK];
+  }
 
-    /**
-     *
-     */
-    const block_type &
-    get_block
-        ( std::size_t index )
-        const
-    { return blocks_[ index / BIT_PER_BLOCK ]; }
+  /**
+   *
+   */
+  block_type const& get_block(std::size_t index) const
+  {
+    return blocks_[index / BIT_PER_BLOCK];
+  }
 
-    /**
-     *
-     */
-    static block_type
-    get_mask
-        ( std::size_t index )
-    { return 0x80 >> index % BIT_PER_BLOCK; }
+  /**
+   *
+   */
+  static block_type get_mask(std::size_t index)
+  {
+    return 0x80 >> index % BIT_PER_BLOCK;
+  }
 
 private:
-    ///
-    blocks_type blocks_;
+  ///
+  blocks_type blocks_;
 };
 
 /**
  *
  */
 inline bool
-operator<
-    ( id const& a
-    , id const& b )
+operator<(id const& a, id const& b)
 {
-    return std::lexicographical_compare( a.begin(), a.end()
-                                       , b.begin(), b.end() );
+  return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
 }
 
 /**
  *
  */
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , id const& i );
+std::ostream&
+operator<<(std::ostream& out, id const& i);
 
 /**
  *
  */
 inline id
-distance
-    ( id const& a
-    , id const& b )
+distance(id const& a, id const& b)
 {
-    id result;
+  id result;
 
-    std::transform( a.begin(), a.end(), b.begin()
-                  , result.begin()
-                  , std::bit_xor< id::block_type >{} );
+  std::transform(a.begin(),
+                 a.end(),
+                 b.begin(),
+                 result.begin(),
+                 std::bit_xor<id::block_type>{});
 
-    return result;
+  return result;
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

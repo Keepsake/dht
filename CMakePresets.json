@@ -6,6 +6,20 @@
       "binaryDir": "${sourceDir}/out/",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "generator": "Ninja Multi-Config"
+    },
+    {
+      "name": "local",
+      "inherits": "default",
+      "cacheVariables": {
+        "CMAKE_EXPORT_PACKAGE_REGISTRY": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "VCPKG_MANIFEST_MODE": {
+          "type": "BOOL",
+          "value": "OFF"
+        }
+      }
     }
   ],
   "buildPresets": [
@@ -13,25 +27,30 @@
       "name": "default",
       "configurePreset": "default",
       "configuration": "Debug"
+    },
+    {
+      "name": "local",
+      "configurePreset": "local",
+      "configuration": "Debug"
     }
   ],
   "testPresets": [
     {
-      "name": "base",
-      "hidden": true,
+      "name": "default",
       "output": {
         "outputOnFailure": true
       },
       "execution": {
-        "timeout": 10,
-        "jobs": 0
+        "timeout": 10
       },
+      "configurePreset": "default",
       "configuration": "Debug"
     },
     {
-      "name": "default",
-      "inherits": "base",
-      "configurePreset": "default"
+      "name": "local",
+      "inherits": "default",
+      "configurePreset": "local",
+      "configuration": "Debug"
     }
   ],
   "workflowPresets": [
@@ -49,6 +68,23 @@
         {
           "type": "test",
           "name": "default"
+        }
+      ]
+    },
+    {
+      "name": "local",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "local"
+        },
+        {
+          "type": "build",
+          "name": "local"
+        },
+        {
+          "type": "test",
+          "name": "local"
         }
       ]
     }

@@ -28,7 +28,8 @@
 
 #include "message.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
@@ -37,58 +38,47 @@ namespace detail {
 class message_serializer
 {
 public:
-    /**
-     *
-     */
-    message_serializer
-        ( id const& my_id );
+  /**
+   *
+   */
+  message_serializer(id const& my_id);
 
-    /**
-     *
-     */
-    template< typename Message >
-    buffer
-    serialize
-        ( Message const& message
-        , id const& token );
+  /**
+   *
+   */
+  template<typename Message>
+  buffer serialize(Message const& message, id const& token);
 
-    /**
-     *
-     */
-    buffer
-    serialize
-        ( header::type const& type
-        , id const& token );
+  /**
+   *
+   */
+  buffer serialize(header::type const& type, id const& token);
 
 private:
-    /**
-     *
-     */
-    header
-    generate_header
-        ( header::type const& type
-        , id const& token );
+  /**
+   *
+   */
+  header generate_header(header::type const& type, id const& token);
 
 private:
-    ///
-    id const& my_id_;
+  ///
+  id const& my_id_;
 };
 
-template< typename Message >
+template<typename Message>
 buffer
-message_serializer::serialize
-    ( Message const& message
-    , id const& token )
+message_serializer::serialize(Message const& message, id const& token)
 {
-    auto const type = message_traits< Message >::TYPE_ID;
-    auto const header = generate_header( type, token );
+  auto const type = message_traits<Message>::TYPE_ID;
+  auto const header = generate_header(type, token);
 
-    buffer b;
-    ks::dht::detail::serialize( header, b );
-    ks::dht::detail::serialize( message, b );
+  buffer b;
+  ks::dht::detail::serialize(header, b);
+  ks::dht::detail::serialize(message, b);
 
-    return b;
+  return b;
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

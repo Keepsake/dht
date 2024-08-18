@@ -25,8 +25,10 @@
 
 #include <ks/dht/session_base.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 constexpr std::uint16_t session_base::DEFAULT_PORT;
-    
-} }
+
+}
+} // namespace ks::dht

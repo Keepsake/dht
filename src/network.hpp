@@ -28,149 +28,138 @@
 
 #include <boost/asio/io_service.hpp>
 
-#include "log.hpp"
-#include "ip_endpoint.hpp"
-#include "message_socket.hpp"
 #include "buffer.hpp"
+#include "ip_endpoint.hpp"
+#include "log.hpp"
+#include "message_socket.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
  *
  */
-template< typename MessageSocketType >
+template<typename MessageSocketType>
 class network final
 {
 public:
-    ///
-    using message_socket_type = MessageSocketType;
+  ///
+  using message_socket_type = MessageSocketType;
 
-    ///
-    using endpoint_type = ip_endpoint;
+  ///
+  using endpoint_type = ip_endpoint;
 
-    ///
-    using resolved_endpoints = std::vector< endpoint_type >;
+  ///
+  using resolved_endpoints = std::vector<endpoint_type>;
 
-    ///
-    using on_message_received_type = std::function<
-        void ( endpoint_type const&
-             , buffer::const_iterator
-             , buffer::const_iterator ) >;
+  ///
+  using on_message_received_type = std::function<void(endpoint_type const&,
+                                                      buffer::const_iterator,
+                                                      buffer::const_iterator)>;
+
 public:
-    /**
-     *
-     */
-    network
-        ( boost::asio::io_service & io_service
-        , message_socket_type && socket_ipv4
-        , message_socket_type && socket_ipv6
-        , on_message_received_type on_message_received )
-            : io_service_( io_service )
-            , socket_ipv4_( std::move( socket_ipv4 ) )
-            , socket_ipv6_( std::move( socket_ipv6 ) )
-            , on_message_received_( on_message_received )
-    {
-        start_message_reception();
-        LOG_DEBUG( network, this ) << "created at '"
-                << socket_ipv4_.local_endpoint() << "' and '"
-                << socket_ipv6_.local_endpoint() << "'." << std::endl;
-    }
+  /**
+   *
+   */
+  network(boost::asio::io_service& io_service,
+          message_socket_type&& socket_ipv4,
+          message_socket_type&& socket_ipv6,
+          on_message_received_type on_message_received)
+    : io_service_(io_service)
+    , socket_ipv4_(std::move(socket_ipv4))
+    , socket_ipv6_(std::move(socket_ipv6))
+    , on_message_received_(on_message_received)
+  {
+    start_message_reception();
+    LOG_DEBUG(network, this)
+        << "created at '" << socket_ipv4_.local_endpoint() << "' and '"
+        << socket_ipv6_.local_endpoint() << "'." << std::endl;
+  }
 
-    /**
-     *
-     */
-    network
-        ( network const& )
-        = delete;
+  /**
+   *
+   */
+  network(network const&) = delete;
 
-    /**
-     *
-     */
-    network &
-    operator=
-        ( network const& )
-        = delete;
+  /**
+   *
+   */
+  network& operator=(network const&) = delete;
 
-    /**
-     *
-     */
-    template< typename Message, typename OnMessageSent >
-    void
-    send
-        ( Message const& message
-        , endpoint_type const& e
-        , OnMessageSent const& on_message_sent )
-    { get_socket_for( e ).async_send( message, e, on_message_sent ); }
+  /**
+   *
+   */
+  template<typename Message, typename OnMessageSent>
+  void send(Message const& message,
+            endpoint_type const& e,
+            OnMessageSent const& on_message_sent)
+  {
+    get_socket_for(e).async_send(message, e, on_message_sent);
+  }
 
-    /**
-     *
-     */
-    template< typename Endpoint >
-    resolved_endpoints
-    resolve_endpoint
-        ( Endpoint const& e )
-    { return message_socket_type::resolve_endpoint( io_service_, e ); }
+  /**
+   *
+   */
+  template<typename Endpoint>
+  resolved_endpoints resolve_endpoint(Endpoint const& e)
+  {
+    return message_socket_type::resolve_endpoint(io_service_, e);
+  }
 
 private:
-    /**
-     *
-     */
-    void
-    start_message_reception
-        ( void )
-    {
-        schedule_receive_on_socket( socket_ipv4_ );
-        schedule_receive_on_socket( socket_ipv6_ );
-    }
+  /**
+   *
+   */
+  void start_message_reception(void)
+  {
+    schedule_receive_on_socket(socket_ipv4_);
+    schedule_receive_on_socket(socket_ipv6_);
+  }
 
-    /**
-     *
-     */
-    void
-    schedule_receive_on_socket
-        ( message_socket_type & current_subnet )
-    {
-        auto on_new_message = [ this, &current_subnet ]
-            ( std::error_code const& failure
-            , endpoint_type const& sender
-            , buffer::const_iterator i
-            , buffer::const_iterator e )
-        {
-            // Reception failure are fatal.
-            if ( failure )
-                throw std::system_error{ failure };
+  /**
+   *
+   */
+  void schedule_receive_on_socket(message_socket_type& current_subnet)
+  {
+    auto on_new_message = [this,
+                           &current_subnet](std::error_code const& failure,
+                                            endpoint_type const& sender,
+                                            buffer::const_iterator i,
+                                            buffer::const_iterator e) {
+      // Reception failure are fatal.
+      if (failure)
+        throw std::system_error{ failure };
 
-            on_message_received_( sender, i, e );
-            schedule_receive_on_socket( current_subnet );
-        };
+      on_message_received_(sender, i, e);
+      schedule_receive_on_socket(current_subnet);
+    };
 
-        current_subnet.async_receive( on_new_message );
-    }
+    current_subnet.async_receive(on_new_message);
+  }
 
-    /**
-     *
-     */
-    message_socket_type &
-    get_socket_for
-        ( endpoint_type const& e )
-    {
-        if ( e.address_.is_v4() )
-            return socket_ipv4_;
+  /**
+   *
+   */
+  message_socket_type& get_socket_for(endpoint_type const& e)
+  {
+    if (e.address_.is_v4())
+      return socket_ipv4_;
 
-        return socket_ipv6_;
-    }
+    return socket_ipv6_;
+  }
 
 private:
-    ///
-    boost::asio::io_service & io_service_;
-    ///
-    message_socket_type socket_ipv4_;
-    ///
-    message_socket_type socket_ipv6_;
-    ///
-    on_message_received_type on_message_received_;
+  ///
+  boost::asio::io_service& io_service_;
+  ///
+  message_socket_type socket_ipv4_;
+  ///
+  message_socket_type socket_ipv6_;
+  ///
+  on_message_received_type on_message_received_;
 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

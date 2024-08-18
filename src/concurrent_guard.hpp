@@ -26,7 +26,8 @@
 
 #include <atomic>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
@@ -36,23 +37,20 @@ namespace detail {
 class concurrent_guard final
 {
 public:
-    /**
-     *
-     */
-    class sentry;
+  /**
+   *
+   */
+  class sentry;
 
 public:
-    /**
-     *
-     */
-    explicit concurrent_guard
-        ( void )
-        noexcept
-    { flag_.clear(); }
+  /**
+   *
+   */
+  explicit concurrent_guard(void) noexcept { flag_.clear(); }
 
 private:
-    ///
-    std::atomic_flag flag_;
+  ///
+  std::atomic_flag flag_;
 };
 
 /**
@@ -61,57 +59,46 @@ private:
 class concurrent_guard::sentry final
 {
 public:
-    /**
-     *
-     */
-    explicit sentry
-        ( concurrent_guard & guard )
-        noexcept
-            : guard_( guard )
-    { is_owner_of_flag_ = ! guard_.flag_.test_and_set(); }
+  /**
+   *
+   */
+  explicit sentry(concurrent_guard& guard) noexcept
+    : guard_(guard)
+  {
+    is_owner_of_flag_ = !guard_.flag_.test_and_set();
+  }
 
+  /**
+   *
+   */
+  ~sentry(void) noexcept
+  {
+    if (is_owner_of_flag_)
+      guard_.flag_.clear();
+  }
 
-    /**
-     *
-     */
-    ~sentry
-        ( void )
-        noexcept
-    {
-        if ( is_owner_of_flag_ )
-            guard_.flag_.clear();
-    }
+  /**
+   *
+   */
+  sentry(sentry const&) = delete;
 
-    /**
-     *
-     */
-    sentry
-        ( sentry const& )
-        = delete;
+  /**
+   *
+   */
+  sentry& operator=(sentry const&) = delete;
 
-    /**
-     *
-     */
-    sentry &
-    operator=
-        ( sentry const& )
-        = delete;
-
-    /**
-     *
-     */
-    explicit operator bool
-        ( void )
-        const
-        noexcept
-    { return is_owner_of_flag_; }
+  /**
+   *
+   */
+  explicit operator bool(void) const noexcept { return is_owner_of_flag_; }
 
 private:
-    ///
-    concurrent_guard & guard_;
-    ///
-    bool is_owner_of_flag_;
+  ///
+  concurrent_guard& guard_;
+  ///
+  bool is_owner_of_flag_;
 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

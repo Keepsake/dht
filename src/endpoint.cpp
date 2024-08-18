@@ -27,100 +27,97 @@
 
 #include <cassert>
 
-#include <ostream>
-#include <istream>
 #include <cctype>
+#include <istream>
+#include <ostream>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace {
 
 std::string
-parse_ipv6( std::istream & in )
+parse_ipv6(std::istream& in)
 {
-    std::string ipv6;
+  std::string ipv6;
 
-    char c = in.get();
-    assert( c == '[' && "An IPv6 address starts with '['");
+  char c = in.get();
+  assert(c == '[' && "An IPv6 address starts with '['");
 
-    for ( c = in.get(); std::isalnum( c ) || c == ':'; c = in.get() )
-        ipv6.push_back(c);
+  for (c = in.get(); std::isalnum(c) || c == ':'; c = in.get())
+    ipv6.push_back(c);
 
-    if ( ipv6.empty() || c != ']' )
-        in.setstate( std::istream::failbit );
+  if (ipv6.empty() || c != ']')
+    in.setstate(std::istream::failbit);
 
-    return ipv6;
+  return ipv6;
 }
 
 std::string
-parse_ipv4( std::istream & in )
+parse_ipv4(std::istream& in)
 {
-    std::string ipv4;
+  std::string ipv4;
 
-    while ( std::isdigit( in.peek() ) || in.peek() == '.' )
-        ipv4.push_back( in.get() );
+  while (std::isdigit(in.peek()) || in.peek() == '.')
+    ipv4.push_back(in.get());
 
-    if ( ipv4.empty() )
-        in.setstate( std::istream::failbit );
+  if (ipv4.empty())
+    in.setstate(std::istream::failbit);
 
-    return ipv4;
+  return ipv4;
 }
 
 std::string
-parse_ip( std::istream & in )
+parse_ip(std::istream& in)
 {
-    // Check if the address is an IPv6
-    if ( in.peek() == '[' )
-        return parse_ipv6( in );
+  // Check if the address is an IPv6
+  if (in.peek() == '[')
+    return parse_ipv6(in);
 
-    return parse_ipv4( in );
+  return parse_ipv4(in);
 }
 
 std::string
-parse_service( std::istream & in )
+parse_service(std::istream& in)
 {
-    std::string service;
+  std::string service;
 
-    in >> service;
+  in >> service;
 
-    return service;
+  return service;
 }
 
-}
+} // namespace
 
 std::istream&
-operator>>
-    ( std::istream & in
-    , endpoint & e )
+operator>>(std::istream& in, endpoint& e)
 {
-    std::istream::sentry s{ in };
+  std::istream::sentry s{ in };
 
-    if ( s )
-    {
-        std::string const address = parse_ip( in );
+  if (s) {
+    std::string const address = parse_ip(in);
 
-        if ( in.get() != ':' )
-            in.setstate( std::istream::failbit );
+    if (in.get() != ':')
+      in.setstate(std::istream::failbit);
 
-        std::string const service = parse_service( in );
+    std::string const service = parse_service(in);
 
-        if ( in )
-            e = endpoint{ address, service };
-    }
+    if (in)
+      e = endpoint{ address, service };
+  }
 
-    return in;
+  return in;
 }
 
 std::ostream&
-operator<<
-    ( std::ostream & out
-    , endpoint const& e )
+operator<<(std::ostream& out, endpoint const& e)
 {
-    std::ostream::sentry s{ out };
+  std::ostream::sentry s{ out };
 
-    if ( s )
-        out << e.address() << ":" << e.service();
+  if (s)
+    out << e.address() << ":" << e.service();
 
-    return out;
+  return out;
 }
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

@@ -26,13 +26,14 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
-#include <system_error>
 #include <functional>
+#include <system_error>
+#include <vector>
 
 #include <ks/dht/detail/symbol_visibility.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 /**
  *  @brief This object contains session types.
@@ -40,36 +41,29 @@ namespace ks::dht { inline namespace abiv1 {
 class session_base
 {
 public:
-    /// The key type used to find data.
-    using key_type = std::vector< std::uint8_t >;
+  /// The key type used to find data.
+  using key_type = std::vector<std::uint8_t>;
 
-    /// The stored data type.
-    using data_type = std::vector< std::uint8_t >;
+  /// The stored data type.
+  using data_type = std::vector<std::uint8_t>;
 
-    /// The callback type called to signal an async save status.
-    using save_handler_type = std::function
-            < void
-                ( std::error_code const& error )
-            >;
-    /// The callback type called to signal an async load status.
-    using load_handler_type = std::function
-            < void
-                ( std::error_code const& error
-                , data_type const& data )
-            >;
+  /// The callback type called to signal an async save status.
+  using save_handler_type = std::function<void(std::error_code const& error)>;
+  /// The callback type called to signal an async load status.
+  using load_handler_type =
+      std::function<void(std::error_code const& error, data_type const& data)>;
 
-    /// This dht implementation default port.
-    static constexpr std::uint16_t DEFAULT_PORT = 27980;
+  /// This dht implementation default port.
+  static constexpr std::uint16_t DEFAULT_PORT = 27980;
 
 protected:
-    /**
-     *  @brief Destructor used to prevent
-     *         usage dervied classes as this
-     *         base.
-     */
-    ~session_base
-        ( void )
-        = default;
+  /**
+   *  @brief Destructor used to prevent
+   *         usage dervied classes as this
+   *         base.
+   */
+  ~session_base(void) = default;
 };
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

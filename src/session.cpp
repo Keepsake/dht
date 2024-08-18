@@ -27,59 +27,59 @@
 
 #include "session_impl.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 /**
  *
  */
-struct session::impl final
-        : ks::dht::detail::session_impl
+struct session::impl final : ks::dht::detail::session_impl
 {
-    /**
-     *
-     */
-    impl
-        ( endpoint const& initial_peer
-        , endpoint const& listen_on_ipv4
-        , endpoint const& listen_on_ipv6 )
-            : session_impl{ initial_peer
-                          , listen_on_ipv4
-                          , listen_on_ipv6 }
-    { }
+  /**
+   *
+   */
+  impl(endpoint const& initial_peer,
+       endpoint const& listen_on_ipv4,
+       endpoint const& listen_on_ipv6)
+    : session_impl{ initial_peer, listen_on_ipv4, listen_on_ipv6 }
+  {
+  }
 };
 
-session::session
-    ( endpoint const& initial_peer
-    , endpoint const& listen_on_ipv4
-    , endpoint const& listen_on_ipv6 )
-        : impl_{ new impl{ initial_peer, listen_on_ipv4, listen_on_ipv6 } }
-{ }
+session::session(endpoint const& initial_peer,
+                 endpoint const& listen_on_ipv4,
+                 endpoint const& listen_on_ipv6)
+  : impl_{ new impl{ initial_peer, listen_on_ipv4, listen_on_ipv6 } }
+{
+}
 
-session::~session
-    ( void )
-{ }
+session::~session(void) {}
 
 void
-session::async_save
-    ( key_type const& key
-    , data_type const& data
-    , save_handler_type handler )
-{ impl_->async_save( key, data, std::move( handler ) ); }
+session::async_save(key_type const& key,
+                    data_type const& data,
+                    save_handler_type handler)
+{
+  impl_->async_save(key, data, std::move(handler));
+}
 
 void
-session::async_load
-    ( key_type const& key
-    , load_handler_type handler )
-{ impl_->async_load( key, std::move( handler ) ); }
+session::async_load(key_type const& key, load_handler_type handler)
+{
+  impl_->async_load(key, std::move(handler));
+}
 
 std::error_code
-session::run
-    ( void )
-{ return impl_->run(); }
+session::run(void)
+{
+  return impl_->run();
+}
 
 void
-session::abort
-        ( void )
-{ impl_->abort(); }
+session::abort(void)
+{
+  impl_->abort();
+}
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

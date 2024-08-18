@@ -1,0 +1,6 @@
+---
+Language: Cpp
+BasedOnStyle: Mozilla
+QualifierAlignment: Right
+ContinuationIndentWidth: 4
+...

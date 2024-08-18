@@ -27,18 +27,16 @@
 
 #include <ks/dht/error.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 std::error_category const&
-error_category
-    ( void )
-    noexcept;
+error_category(void) noexcept;
 
 std::error_code
-make_error_code
-    ( error_type code )
-    noexcept;
+make_error_code(error_type code) noexcept;
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

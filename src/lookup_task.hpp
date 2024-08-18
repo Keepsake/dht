@@ -28,247 +28,210 @@
 #include <map>
 #include <vector>
 
-#include "peer.hpp"
 #include "log.hpp"
+#include "peer.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 ///
 class lookup_task
 {
 public:
-    /**
-     *
-     */
-    void
-    flag_candidate_as_valid
-        ( id const& candidate_id );
+  /**
+   *
+   */
+  void flag_candidate_as_valid(id const& candidate_id);
 
-    /**
-     *
-     */
-    void
-    flag_candidate_as_invalid
-        ( id const& candidate_id );
+  /**
+   *
+   */
+  void flag_candidate_as_invalid(id const& candidate_id);
 
-    /**
-     *
-     */
-    std::vector< peer >
-    select_new_closest_candidates
-        ( std::size_t max_count );
+  /**
+   *
+   */
+  std::vector<peer> select_new_closest_candidates(std::size_t max_count);
 
-    /**
-     *
-     */
-    std::vector< peer >
-    select_closest_valid_candidates
-        ( std::size_t max_count );
+  /**
+   *
+   */
+  std::vector<peer> select_closest_valid_candidates(std::size_t max_count);
 
-    /**
-     *
-     */
-    template< typename Peers >
-    void
-    add_candidates 
-        ( Peers const& peers );
+  /**
+   *
+   */
+  template<typename Peers>
+  void add_candidates(Peers const& peers);
 
-    /**
-     *
-     */
-    bool
-    have_all_requests_completed
-        ( void )
-        const;
+  /**
+   *
+   */
+  bool have_all_requests_completed(void) const;
 
-    /**
-     *
-     */
-    id const&
-    get_key
-        ( void )
-        const;
+  /**
+   *
+   */
+  id const& get_key(void) const;
 
 protected:
-    /**
-     *
-     */
-    ~lookup_task
-        ( void );
+  /**
+   *
+   */
+  ~lookup_task(void);
 
-    /**
-     *
-     */
-    template< typename Iterator >
-    lookup_task
-        ( id const & key
-        , Iterator i, Iterator e );
+  /**
+   *
+   */
+  template<typename Iterator>
+  lookup_task(id const& key, Iterator i, Iterator e);
 
 private:
-    ///
-    struct candidate final
+  ///
+  struct candidate final
+  {
+    peer peer_;
+    enum
     {
-        peer peer_;
-        enum {
-            STATE_UNKNOWN,
-            STATE_CONTACTED,
-            STATE_RESPONDED,
-            STATE_TIMEOUTED,
-        } state_;
-    };
+      STATE_UNKNOWN,
+      STATE_CONTACTED,
+      STATE_RESPONDED,
+      STATE_TIMEOUTED,
+    } state_;
+  };
 
-    ///
-    using candidates_type = std::map< id, candidate >;
+  ///
+  using candidates_type = std::map<id, candidate>;
 
 private:
-    /**
-     *
-     */
-    void
-    add_candidate
-        ( peer const& p );
+  /**
+   *
+   */
+  void add_candidate(peer const& p);
 
-    /**
-     *
-     */
-    candidates_type::iterator
-    find_candidate
-        ( id const& candidate_id );
+  /**
+   *
+   */
+  candidates_type::iterator find_candidate(id const& candidate_id);
 
 private:
-    ///
-    id key_;
-    ///
-    std::size_t in_flight_requests_count_;
-    ///
-    candidates_type candidates_;
+  ///
+  id key_;
+  ///
+  std::size_t in_flight_requests_count_;
+  ///
+  candidates_type candidates_;
 };
 
-inline
-lookup_task::~lookup_task
-    ( void )
-    = default;
+inline lookup_task::~lookup_task(void) = default;
 
-template< typename Iterator >
-inline
-lookup_task::lookup_task
-    ( id const & key
-    , Iterator i, Iterator e )
-        : key_{ key }
-        , in_flight_requests_count_{ 0 }
-        , candidates_{}
+template<typename Iterator>
+inline lookup_task::lookup_task(id const& key, Iterator i, Iterator e)
+  : key_{ key }
+  , in_flight_requests_count_{ 0 }
+  , candidates_{}
 {
-    for ( ; i != e; ++i )
-        add_candidate( peer{ i->first, i->second } );
+  for (; i != e; ++i)
+    add_candidate(peer{ i->first, i->second });
 }
 
 inline void
-lookup_task::flag_candidate_as_valid
-    ( id const& candidate_id )
+lookup_task::flag_candidate_as_valid(id const& candidate_id)
 {
-    auto i = find_candidate( candidate_id );
-    if ( i == candidates_.end() )
-        return;
+  auto i = find_candidate(candidate_id);
+  if (i == candidates_.end())
+    return;
 
-    -- in_flight_requests_count_;
-    i->second.state_ = candidate::STATE_RESPONDED;
+  --in_flight_requests_count_;
+  i->second.state_ = candidate::STATE_RESPONDED;
 }
 
 inline void
-lookup_task::flag_candidate_as_invalid
-    ( id const& candidate_id )
+lookup_task::flag_candidate_as_invalid(id const& candidate_id)
 {
-    auto i = find_candidate( candidate_id );
-    if ( i == candidates_.end() )
-        return;
+  auto i = find_candidate(candidate_id);
+  if (i == candidates_.end())
+    return;
 
-    -- in_flight_requests_count_;
-    i->second.state_ = candidate::STATE_TIMEOUTED;
+  --in_flight_requests_count_;
+  i->second.state_ = candidate::STATE_TIMEOUTED;
 }
 
-inline std::vector< peer >
-lookup_task::select_new_closest_candidates
-    ( std::size_t max_count )
+inline std::vector<peer>
+lookup_task::select_new_closest_candidates(std::size_t max_count)
 {
-    std::vector< peer > candidates;
+  std::vector<peer> candidates;
 
-    // Iterate over all candidates until we picked
-    // candidates_max_count not-contacted candidates.
-    for ( auto i = candidates_.begin(), e = candidates_.end()
-        ; i != e && in_flight_requests_count_ < max_count
-        ; ++ i )
-    {
-        if ( i->second.state_ == candidate::STATE_UNKNOWN )
-        {
-            i->second.state_ = candidate::STATE_CONTACTED;
-            ++ in_flight_requests_count_;
-            candidates.push_back( i->second.peer_ );
-        }
+  // Iterate over all candidates until we picked
+  // candidates_max_count not-contacted candidates.
+  for (auto i = candidates_.begin(), e = candidates_.end();
+       i != e && in_flight_requests_count_ < max_count;
+       ++i) {
+    if (i->second.state_ == candidate::STATE_UNKNOWN) {
+      i->second.state_ = candidate::STATE_CONTACTED;
+      ++in_flight_requests_count_;
+      candidates.push_back(i->second.peer_);
     }
+  }
 
-    return candidates;
+  return candidates;
 }
 
-inline std::vector< peer >
-lookup_task::select_closest_valid_candidates
-    ( std::size_t max_count )
+inline std::vector<peer>
+lookup_task::select_closest_valid_candidates(std::size_t max_count)
 {
-    std::vector< peer > candidates;
+  std::vector<peer> candidates;
 
-    // Iterate over all candidates until we picked
-    // candidates_max_count responsive candidates.
-    for ( auto i = candidates_.begin(), e = candidates_.end()
-        ; i != e && candidates.size() < max_count
-        ; ++ i )
-    {
-        if ( i->second.state_ == candidate::STATE_RESPONDED )
-            candidates.push_back( i->second.peer_ );
-    }
+  // Iterate over all candidates until we picked
+  // candidates_max_count responsive candidates.
+  for (auto i = candidates_.begin(), e = candidates_.end();
+       i != e && candidates.size() < max_count;
+       ++i) {
+    if (i->second.state_ == candidate::STATE_RESPONDED)
+      candidates.push_back(i->second.peer_);
+  }
 
-    return candidates;
+  return candidates;
 }
 
-template< typename Peers >
+template<typename Peers>
 inline void
-lookup_task::add_candidates
-    ( Peers const& peers )
+lookup_task::add_candidates(Peers const& peers)
 {
-    for ( auto const& p : peers )
-        add_candidate( p );
+  for (auto const& p : peers)
+    add_candidate(p);
 }
 
 inline bool
-lookup_task::have_all_requests_completed
-    ( void )
-    const
-{ return in_flight_requests_count_ == 0; }
+lookup_task::have_all_requests_completed(void) const
+{
+  return in_flight_requests_count_ == 0;
+}
 
 inline id const&
-lookup_task::get_key
-    ( void )
-    const
-{ return key_; }
+lookup_task::get_key(void) const
+{
+  return key_;
+}
 
 inline void
-lookup_task::add_candidate
-    ( peer const& p )
+lookup_task::add_candidate(peer const& p)
 {
-    LOG_DEBUG( lookup_task, this )
-            << "adding '" << p << "'." << std::endl;
+  LOG_DEBUG(lookup_task, this) << "adding '" << p << "'." << std::endl;
 
-    auto const d = distance( p.id_, key_ );
-    candidate const c{ p, candidate::STATE_UNKNOWN };
-    candidates_.emplace( d, c );
+  auto const d = distance(p.id_, key_);
+  candidate const c{ p, candidate::STATE_UNKNOWN };
+  candidates_.emplace(d, c);
 }
 
 inline lookup_task::candidates_type::iterator
-lookup_task::find_candidate
-    ( id const& candidate_id )
+lookup_task::find_candidate(id const& candidate_id)
 {
-    auto const d = distance( candidate_id, key_ );
-    return candidates_.find( d );
+  auto const d = distance(candidate_id, key_);
+  return candidates_.find(d);
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

@@ -31,54 +31,50 @@
 
 #include <boost/asio/ip/address.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 ///
 struct ip_endpoint final
 {
-    boost::asio::ip::address address_;
-    uint16_t port_;
+  boost::asio::ip::address address_;
+  uint16_t port_;
 };
 
 /**
  *
  */
 inline ip_endpoint
-to_ip_endpoint( std::string const& ip
-              , std::uint16_t port )
+to_ip_endpoint(std::string const& ip, std::uint16_t port)
 {
-    return ip_endpoint
-        { boost::asio::ip::address::from_string( ip )
-        , port };
+  return ip_endpoint{ boost::asio::ip::address::from_string(ip), port };
 }
 
 /**
  *
  */
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , ip_endpoint const& i );
+std::ostream&
+operator<<(std::ostream& out, ip_endpoint const& i);
 
 /**
  *
  */
 inline bool
-operator==
-    ( const ip_endpoint & a
-    , const ip_endpoint & b )
-{ return a.address_ == b.address_ && a.port_ == b.port_; }
+operator==(ip_endpoint const& a, ip_endpoint const& b)
+{
+  return a.address_ == b.address_ && a.port_ == b.port_;
+}
 
 /**
  *
  */
 inline bool
-operator!=
-    ( ip_endpoint const& a
-    , ip_endpoint const& b )
-{ return ! ( a == b ); }
-
+operator!=(ip_endpoint const& a, ip_endpoint const& b)
+{
+  return !(a == b);
+}
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

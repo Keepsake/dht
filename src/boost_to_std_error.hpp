@@ -25,29 +25,30 @@
 
 #pragma once
 
-#include <system_error>
 #include <boost/system/error_code.hpp>
+#include <system_error>
 
 #include "error_impl.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
  *
  */
 inline std::error_code
-boost_to_std_error
-    ( boost::system::error_code const& failure ) noexcept
+boost_to_std_error(boost::system::error_code const& failure) noexcept
 {
-    if ( failure.category() == boost::system::generic_category() )
-        return std::error_code{ failure.value(), std::generic_category() };
+  if (failure.category() == boost::system::generic_category())
+    return std::error_code{ failure.value(), std::generic_category() };
 
-    if ( failure.category() == boost::system::system_category() )
-        return std::error_code{ failure.value(), std::system_category() };
-    
-    return make_error_code( UNKNOWN_ERROR );
+  if (failure.category() == boost::system::system_category())
+    return std::error_code{ failure.value(), std::system_category() };
+
+  return make_error_code(UNKNOWN_ERROR);
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

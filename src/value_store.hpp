@@ -32,28 +32,26 @@
 
 #include <boost/functional/hash.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
-template< typename Container >
+template<typename Container>
 struct value_store_key_hasher
 {
-    using argument_type = Container;
-    using result_type = std::size_t;
+  using argument_type = Container;
+  using result_type = std::size_t;
 
-    result_type
-    operator()
-        ( argument_type const& key )
-        const
-    { return boost::hash_range( key.begin(), key.end() ); }
+  result_type operator()(argument_type const& key) const
+  {
+    return boost::hash_range(key.begin(), key.end());
+  }
 };
 
 ///
-template< typename Key, typename Value >
-using value_store = std::unordered_map
-        < Key
-        , Value
-        , value_store_key_hasher< Key > >;
+template<typename Key, typename Value>
+using value_store = std::unordered_map<Key, Value, value_store_key_hasher<Key>>;
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

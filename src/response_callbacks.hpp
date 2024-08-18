@@ -24,64 +24,58 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <map>
 #include <functional>
+#include <map>
 
 #include "id.hpp"
 #include "ip_endpoint.hpp"
 #include "message.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 ///
 class response_callbacks final
 {
 public:
-    ///
-    using endpoint_type = ip_endpoint;
+  ///
+  using endpoint_type = ip_endpoint;
 
-    ///
-    using callback = std::function< void
-            ( endpoint_type const& sender
-            , header const& h
-            , buffer::const_iterator i
-            , buffer::const_iterator e ) >;
+  ///
+  using callback = std::function<void(endpoint_type const& sender,
+                                      header const& h,
+                                      buffer::const_iterator i,
+                                      buffer::const_iterator e)>;
 
 public:
-    /**
-     *
-     */
-    void
-    push_callback
-        ( id const& message_id
-        , callback const& on_message_received );
+  /**
+   *
+   */
+  void push_callback(id const& message_id, callback const& on_message_received);
 
-    /**
-     *
-     */
-    bool
-    remove_callback
-        ( id const& message_id );
+  /**
+   *
+   */
+  bool remove_callback(id const& message_id);
 
-    /**
-     *
-     */
-    std::error_code
-    dispatch_response
-        ( endpoint_type const& sender
-        , header const& h
-        , buffer::const_iterator i
-        , buffer::const_iterator e );
+  /**
+   *
+   */
+  std::error_code dispatch_response(endpoint_type const& sender,
+                                    header const& h,
+                                    buffer::const_iterator i,
+                                    buffer::const_iterator e);
 
 private:
-    ///
-    using callbacks = std::map< id, callback >;
+  ///
+  using callbacks = std::map<id, callback>;
 
 private:
-    ///
-    callbacks callbacks_;
+  ///
+  callbacks callbacks_;
 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

@@ -27,15 +27,16 @@
 
 #include <iostream>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , ip_endpoint const& i )
-{ return out << i.address_ << ":" << i.port_; }
-
+std::ostream&
+operator<<(std::ostream& out, ip_endpoint const& i)
+{
+  return out << i.address_ << ":" << i.port_;
+}
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

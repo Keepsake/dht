@@ -25,38 +25,32 @@
 
 #include "message_serializer.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
-message_serializer::message_serializer
-    ( id const& my_id )
-    : my_id_( my_id )
-{ }
+message_serializer::message_serializer(id const& my_id)
+  : my_id_(my_id)
+{
+}
 
 header
-message_serializer::generate_header
-    ( header::type const& type
-    , id const& token )
+message_serializer::generate_header(header::type const& type, id const& token)
 {
-    return header
-            { ks::dht::detail::header::V1
-            , type
-            , my_id_
-            , token };
+  return header{ ks::dht::detail::header::V1, type, my_id_, token };
 }
 
 buffer
-message_serializer::serialize
-    ( header::type const& type
-    , id const& token )
+message_serializer::serialize(header::type const& type, id const& token)
 {
-    auto const header = generate_header( type, token );
+  auto const header = generate_header(type, token);
 
-    buffer b;
-    ks::dht::detail::serialize( header, b );
+  buffer b;
+  ks::dht::detail::serialize(header, b);
 
-    return b;
+  return b;
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

@@ -24,13 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
-using buffer = std::vector< std::uint8_t >;
+using buffer = std::vector<std::uint8_t>;
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

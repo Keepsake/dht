@@ -28,59 +28,58 @@
 #include <iostream>
 #include <set>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 namespace {
 
-using enabled_modules_log_type = std::set< std::string >;
+using enabled_modules_log_type = std::set<std::string>;
 
-enabled_modules_log_type &
-get_enabled_modules
-    ( void )
+enabled_modules_log_type&
+get_enabled_modules(void)
 {
-    static enabled_modules_log_type enabled_modules_;
-    return enabled_modules_;
+  static enabled_modules_log_type enabled_modules_;
+  return enabled_modules_;
 }
 
 } // anonymous namespace
 
-std::ostream &
-get_debug_log
-    ( char const * module
-    , void const * thiz )
+std::ostream&
+get_debug_log(char const* module, void const* thiz)
 {
-    return std::cout << "[debug] (" << module << " @ "
-                     << std::hex << ( std::uintptr_t( thiz ) & 0xffffff )
-                     << std::dec << ") ";
+  return std::cout << "[debug] (" << module << " @ " << std::hex
+                   << (std::uintptr_t(thiz) & 0xffffff) << std::dec << ") ";
 }
 
 /**
  *
  */
 void
-enable_log_for
-    ( std::string const& module )
-{ get_enabled_modules().insert( module ); }
+enable_log_for(std::string const& module)
+{
+  get_enabled_modules().insert(module);
+}
 
 /**
  *
  */
 void
-disable_log_for
-    ( std::string const& module )
-{ get_enabled_modules().erase( module ); }
+disable_log_for(std::string const& module)
+{
+  get_enabled_modules().erase(module);
+}
 
 /**
  *
  */
 bool
-is_log_enabled
-    ( std::string const& module )
+is_log_enabled(std::string const& module)
 {
-    return get_enabled_modules().count( "*" ) > 0
-            || get_enabled_modules().count( module ) > 0;
+  return get_enabled_modules().count("*") > 0 ||
+         get_enabled_modules().count(module) > 0;
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

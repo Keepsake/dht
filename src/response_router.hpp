@@ -31,7 +31,8 @@
 #include "response_callbacks.hpp"
 #include "timer.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
@@ -40,90 +41,78 @@ namespace detail {
 class response_router final
 {
 public:
-    ///
-    using endpoint_type = ip_endpoint;
+  ///
+  using endpoint_type = ip_endpoint;
 
 public:
-    /**
-     *
-     */
-    explicit
-    response_router
-        ( boost::asio::io_service & io_service )
-            : response_callbacks_()
-            , timer_( io_service )
-    { }
+  /**
+   *
+   */
+  explicit response_router(boost::asio::io_service& io_service)
+    : response_callbacks_()
+    , timer_(io_service)
+  {
+  }
 
-    /**
-     *
-     */
-    response_router
-        ( response_router const& )
-        = delete;
+  /**
+   *
+   */
+  response_router(response_router const&) = delete;
 
-    /**
-     *
-     */
-    response_router &
-    operator=
-        ( response_router const& )
-        = delete;
+  /**
+   *
+   */
+  response_router& operator=(response_router const&) = delete;
 
-    /**
-     *
-     */
-    void
-    handle_new_response
-        ( endpoint_type const& sender
-        , header const& h
-        , buffer::const_iterator i
-        , buffer::const_iterator e )
-    {
-        // Try to forward the message to its associated callback.
-        auto failure = response_callbacks_.dispatch_response( sender
-                                                            , h, i, e );
-        if ( failure == UNASSOCIATED_MESSAGE_ID )
-            // Unknown request or unassociated responses
-            // are discarded.
-            LOG_DEBUG( response_router, this ) << "dropping unknown response."
-                    << std::endl;
-    }
+  /**
+   *
+   */
+  void handle_new_response(endpoint_type const& sender,
+                           header const& h,
+                           buffer::const_iterator i,
+                           buffer::const_iterator e)
+  {
+    // Try to forward the message to its associated callback.
+    auto failure = response_callbacks_.dispatch_response(sender, h, i, e);
+    if (failure == UNASSOCIATED_MESSAGE_ID)
+      // Unknown request or unassociated responses
+      // are discarded.
+      LOG_DEBUG(response_router, this)
+          << "dropping unknown response." << std::endl;
+  }
 
-    /**
-     *
-     */
-    template< typename OnResponseReceived, typename OnError >
-    void
-    register_temporary_callback
-        ( id const& response_id
-        , timer::duration const& callback_ttl
-        , OnResponseReceived const& on_response_received
-        , OnError const& on_error )
-    {
-        auto on_timeout = [ this, on_error, response_id ]
-            ( void )
-        {
-            // If a callback has been removed, that means
-            // the message has never been received
-            // hence report the timeout to the client.
-            if ( response_callbacks_.remove_callback( response_id ) )
-                on_error( make_error_code( std::errc::timed_out ) );
-        };
+  /**
+   *
+   */
+  template<typename OnResponseReceived, typename OnError>
+  void register_temporary_callback(
+      id const& response_id,
+      timer::duration const& callback_ttl,
+      OnResponseReceived const& on_response_received,
+      OnError const& on_error)
+  {
+    auto on_timeout = [this, on_error, response_id](void) {
+      // If a callback has been removed, that means
+      // the message has never been received
+      // hence report the timeout to the client.
+      if (response_callbacks_.remove_callback(response_id))
+        on_error(make_error_code(std::errc::timed_out));
+    };
 
-        // Associate the response id with the
-        // on_response_received callback.
-        response_callbacks_.push_callback( response_id
-                                         , on_response_received );
+    // Associate the response id with the
+    // on_response_received callback.
+    response_callbacks_.push_callback(response_id, on_response_received);
 
-        timer_.expires_from_now( callback_ttl, on_timeout );
-    }
+    timer_.expires_from_now(callback_ttl, on_timeout);
+  }
 
 private:
-    ///
-    response_callbacks response_callbacks_;
-    ///
-    timer timer_;
+  ///
+  response_callbacks response_callbacks_;
+  ///
+  timer timer_;
 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

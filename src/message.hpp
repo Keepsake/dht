@@ -24,19 +24,20 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <iosfwd>
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
+#include <iosfwd>
 #include <system_error>
 #include <vector>
 
 #include <boost/asio/ip/address.hpp>
 
-#include "peer.hpp"
-#include "id.hpp"
 #include "buffer.hpp"
+#include "id.hpp"
+#include "peer.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
@@ -44,245 +45,229 @@ namespace detail {
  */
 struct header final
 {
-    enum version : std::uint8_t
-    {
-        ///
-        V1 = 1,
-    } version_;
+  enum version : std::uint8_t
+  {
+    ///
+    V1 = 1,
+  } version_;
 
+  ///
+  enum type : std::uint8_t
+  {
     ///
-    enum type : std::uint8_t
-    {
-        ///
-        PING_REQUEST,
-        ///
-        PING_RESPONSE,
-        ///
-        STORE_REQUEST,
-        ///
-        FIND_PEER_REQUEST,
-        ///
-        FIND_PEER_RESPONSE,
-        ///
-        FIND_VALUE_REQUEST,
-        ///
-        FIND_VALUE_RESPONSE,
-    } type_;
+    PING_REQUEST,
+    ///
+    PING_RESPONSE,
+    ///
+    STORE_REQUEST,
+    ///
+    FIND_PEER_REQUEST,
+    ///
+    FIND_PEER_RESPONSE,
+    ///
+    FIND_VALUE_REQUEST,
+    ///
+    FIND_VALUE_RESPONSE,
+  } type_;
 
-    ///
-    id source_id_;
-    ///
-    id random_token_;
+  ///
+  id source_id_;
+  ///
+  id random_token_;
 };
 
 /**
  *
  */
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , header::type const& h );
+std::ostream&
+operator<<(std::ostream& out, header::type const& h);
 
 /**
  *
  */
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , header const& h );
+std::ostream&
+operator<<(std::ostream& out, header const& h);
 
 /**
  *
  */
-template< typename MessageBodyType >
+template<typename MessageBodyType>
 struct message_traits;
 
 /**
  *
  */
 void
-serialize
-    ( header const& h
-    , buffer & b );
+serialize(header const& h, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , header & h );
+deserialize(buffer::const_iterator& i, buffer::const_iterator e, header& h);
 
 /**
  *
  */
 struct find_peer_request_body final
 {
-    ///
-    id peer_to_find_id_;
+  ///
+  id peer_to_find_id_;
 };
 
 /**
  *
  */
 template<>
-struct message_traits< find_peer_request_body >
-{ static constexpr header::type TYPE_ID = header::FIND_PEER_REQUEST; };
+struct message_traits<find_peer_request_body>
+{
+  static constexpr header::type TYPE_ID = header::FIND_PEER_REQUEST;
+};
 
 /**
  *
  */
 void
-serialize
-    ( find_peer_request_body const& body
-    , buffer & b );
+serialize(find_peer_request_body const& body, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , find_peer_request_body & body );
-
+deserialize(buffer::const_iterator& i,
+            buffer::const_iterator e,
+            find_peer_request_body& body);
 
 /**
  *
  */
 struct find_peer_response_body final
 {
-    ///
-    std::vector< peer > peers_;
+  ///
+  std::vector<peer> peers_;
 };
 
 /**
  *
  */
 template<>
-struct message_traits< find_peer_response_body >
-{ static constexpr header::type TYPE_ID = header::FIND_PEER_RESPONSE; };
+struct message_traits<find_peer_response_body>
+{
+  static constexpr header::type TYPE_ID = header::FIND_PEER_RESPONSE;
+};
 
 /**
  *
  */
 void
-serialize
-    ( find_peer_response_body const& body
-    , buffer & b );
+serialize(find_peer_response_body const& body, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , find_peer_response_body & body );
+deserialize(buffer::const_iterator& i,
+            buffer::const_iterator e,
+            find_peer_response_body& body);
 
 /**
  *
  */
 struct find_value_request_body final
 {
-    ///
-    id value_to_find_;
+  ///
+  id value_to_find_;
 };
 
 /**
  *
  */
 template<>
-struct message_traits< find_value_request_body >
-{ static constexpr header::type TYPE_ID = header::FIND_VALUE_REQUEST; };
+struct message_traits<find_value_request_body>
+{
+  static constexpr header::type TYPE_ID = header::FIND_VALUE_REQUEST;
+};
 
 /**
  *
  */
 void
-serialize
-    ( find_value_request_body const& body
-    , buffer & b );
+serialize(find_value_request_body const& body, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , find_value_request_body & body );
+deserialize(buffer::const_iterator& i,
+            buffer::const_iterator e,
+            find_value_request_body& body);
 
 /**
  *
  */
 struct find_value_response_body final
 {
-    ///
-    std::vector< std::uint8_t > data_;
+  ///
+  std::vector<std::uint8_t> data_;
 };
 
 /**
  *
  */
 template<>
-struct message_traits< find_value_response_body >
-{ static constexpr header::type TYPE_ID = header::FIND_VALUE_RESPONSE; };
-
+struct message_traits<find_value_response_body>
+{
+  static constexpr header::type TYPE_ID = header::FIND_VALUE_RESPONSE;
+};
 
 /**
  *
  */
 void
-serialize
-    ( find_value_response_body const& body
-    , buffer & b );
+serialize(find_value_response_body const& body, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , find_value_response_body & body );
+deserialize(buffer::const_iterator& i,
+            buffer::const_iterator e,
+            find_value_response_body& body);
 
 /**
  *
  */
 struct store_value_request_body final
 {
-    ///
-    id data_key_hash_;
-    ///
-    std::vector< std::uint8_t > data_value_;
+  ///
+  id data_key_hash_;
+  ///
+  std::vector<std::uint8_t> data_value_;
 };
 
 /**
  *
  */
 template<>
-struct message_traits< store_value_request_body >
-{ static constexpr header::type TYPE_ID = header::STORE_REQUEST; };
-
+struct message_traits<store_value_request_body>
+{
+  static constexpr header::type TYPE_ID = header::STORE_REQUEST;
+};
 
 /**
  *
  */
 void
-serialize
-    ( store_value_request_body const& body
-    , buffer & b );
+serialize(store_value_request_body const& body, buffer& b);
 
 /**
  *
  */
 std::error_code
-deserialize
-    ( buffer::const_iterator & i
-    , buffer::const_iterator e
-    , store_value_request_body & body );
+deserialize(buffer::const_iterator& i,
+            buffer::const_iterator e,
+            store_value_request_body& body);
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

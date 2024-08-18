@@ -25,90 +25,70 @@
 
 #pragma once
 
-#include <string>
 #include <cstdint>
 #include <iosfwd>
 #include <sstream>
+#include <string>
 
 #include <ks/dht/detail/symbol_visibility.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 class endpoint final
 {
 public:
-    using address_type = std::string;
-    using service_type = std::string;
-    using service_numeric_type = std::uint16_t;
+  using address_type = std::string;
+  using service_type = std::string;
+  using service_numeric_type = std::uint16_t;
 
 public:
-    endpoint
-        ( void )
-    { }
+  endpoint(void) {}
 
-    endpoint
-        ( address_type const& address
-        , service_type const& service )
-            : address_( address )
-            , service_( service )
-    { }
+  endpoint(address_type const& address, service_type const& service)
+    : address_(address)
+    , service_(service)
+  {
+  }
 
-    endpoint
-        ( address_type const& address
-        , service_numeric_type const& service )
-            : address_( address )
-            , service_( std::to_string( service ) )
-    { }
+  endpoint(address_type const& address, service_numeric_type const& service)
+    : address_(address)
+    , service_(std::to_string(service))
+  {
+  }
 
-    address_type const&
-    address
-        ( void )
-        const
-    { return address_; }
+  address_type const& address(void) const { return address_; }
 
-    void
-    address
-        ( address_type const& address )
-    { address_ = address; }
+  void address(address_type const& address) { address_ = address; }
 
-    service_type const&
-    service
-        ( void )
-        const
-    { return service_; }
+  service_type const& service(void) const { return service_; }
 
-    void
-    service
-        ( service_type const& service )
-    { service_ = service; }
+  void service(service_type const& service) { service_ = service; }
 
 private:
-    address_type address_;
-    service_type service_;
+  address_type address_;
+  service_type service_;
 };
 
 KS_DHT_EXPORT
 std::ostream&
-operator<<
-    ( std::ostream & out
-    , endpoint const& e );
+operator<<(std::ostream& out, endpoint const& e);
 
 KS_DHT_EXPORT
-std::istream &
-operator>>
-    ( std::istream & in
-    , endpoint & e );
+std::istream&
+operator>>(std::istream& in, endpoint& e);
 
 inline bool
-operator==
-    ( endpoint const& a
-    , endpoint const& b )
-{ return a.address() == b.address() && a.service() == b.service(); }
+operator==(endpoint const& a, endpoint const& b)
+{
+  return a.address() == b.address() && a.service() == b.service();
+}
 
 inline bool
-operator!=
-    ( endpoint const& a
-    , endpoint const& b )
-{ return ! ( a == b ); }
+operator!=(endpoint const& a, endpoint const& b)
+{
+  return !(a == b);
+}
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

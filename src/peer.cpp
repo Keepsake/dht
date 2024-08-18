@@ -25,14 +25,16 @@
 
 #include "peer.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , peer const& p )
-{ return out << p.id_ << "@" << p.endpoint_; }
+std::ostream&
+operator<<(std::ostream& out, peer const& p)
+{
+  return out << p.id_ << "@" << p.endpoint_;
+}
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

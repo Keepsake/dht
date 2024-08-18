@@ -26,7 +26,8 @@
 
 #include <chrono>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 // k
@@ -40,4 +41,5 @@ std::chrono::milliseconds constexpr INITIAL_CONTACT_RECEIVE_TIMEOUT{ 1000 };
 std::chrono::milliseconds constexpr PEER_LOOKUP_TIMEOUT{ 200 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

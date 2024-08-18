@@ -12,8 +12,8 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVLOGED BY DAVLOG KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// THIS SOFTWARE IS PROVLOGED BY DAVLOG KELLER AND CONTRIBUTORS ``AS IS'' AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCLOGENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
@@ -24,44 +24,39 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <cstdio>
 #include <cctype>
 #include <cstdint>
-#include <string>
+#include <cstdio>
 #include <sstream>
+#include <string>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
  *
  */
-std::ostream &
-get_debug_log
-    ( char const * module
-    , void const * thiz );
+std::ostream&
+get_debug_log(char const* module, void const* thiz);
 
 /**
  *
  */
 void
-enable_log_for
-    ( std::string const& module );
+enable_log_for(std::string const& module);
 
 /**
  *
  */
 void
-disable_log_for
-    ( std::string const& module );
-
+disable_log_for(std::string const& module);
 
 /**
  *
  */
 bool
-is_log_enabled
-    ( std::string const& module );
+is_log_enabled(std::string const& module);
 
 /**
  *  This macro deserves some explanation.
@@ -74,37 +69,37 @@ is_log_enabled
  *  can be costly, its result is cached in a static variable.
  */
 #ifdef KADEMLIA_ENABLE_DEBUG
-#   define LOG_DEBUG( module, thiz )                                           \
-    for ( bool used = false; ! used; used = true )                             \
-        for ( static bool enabled = ks::dht::detail::is_log_enabled( #module )\
-            ; enabled && ! used; used = true )                                 \
-            ks::dht::detail::get_debug_log( #module, thiz )
+#define LOG_DEBUG(module, thiz)                                                \
+  for (bool used = false; !used; used = true)                                  \
+    for (static bool enabled = ks::dht::detail::is_log_enabled(#module);       \
+         enabled && !used;                                                     \
+         used = true)                                                          \
+  ks::dht::detail::get_debug_log(#module, thiz)
 #else
-#   define LOG_DEBUG( module, thiz )                                           \
-    while ( false )                                                            \
-        ks::dht::detail::get_debug_log( #module, thiz )
+#define LOG_DEBUG(module, thiz)                                                \
+  while (false)                                                                \
+  ks::dht::detail::get_debug_log(#module, thiz)
 #endif
 
 /**
  *
  */
-template< typename Container >
+template<typename Container>
 inline std::string
-to_string
-    ( const Container & c )
+to_string(Container const& c)
 {
-    std::ostringstream out;
+  std::ostringstream out;
 
-    for ( auto const& v : c )
-    {
-        if ( std::isprint( v ) )
-            out << v;
-        else
-            out << '\\' << uint16_t( v );
-    }
+  for (auto const& v : c) {
+    if (std::isprint(v))
+      out << v;
+    else
+      out << '\\' << uint16_t(v);
+  }
 
-    return out.str();
+  return out.str();
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

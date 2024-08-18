@@ -27,14 +27,14 @@
 
 #include "error_impl.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 std::error_condition
-make_error_condition
-    ( error_type code )
-    noexcept
+make_error_condition(error_type code) noexcept
 {
-    return { static_cast< int >( code ), detail::error_category() };
+  return { static_cast<int>(code), detail::error_category() };
 }
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

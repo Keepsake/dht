@@ -27,43 +27,42 @@
 
 #include "session_impl.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
 /**
  *
  */
-struct first_session::impl final
-        : ks::dht::detail::session_impl
+struct first_session::impl final : ks::dht::detail::session_impl
 {
-    /**
-     *
-     */
-    impl
-        ( endpoint const& listen_on_ipv4
-        , endpoint const& listen_on_ipv6 )
-            : session_impl{ listen_on_ipv4
-                          , listen_on_ipv6 }
-    { }
+  /**
+   *
+   */
+  impl(endpoint const& listen_on_ipv4, endpoint const& listen_on_ipv6)
+    : session_impl{ listen_on_ipv4, listen_on_ipv6 }
+  {
+  }
 };
 
-first_session::first_session
-    ( endpoint const& listen_on_ipv4
-    , endpoint const& listen_on_ipv6 )
-        : impl_{ new impl{ listen_on_ipv4, listen_on_ipv6 } }
-{ }
+first_session::first_session(endpoint const& listen_on_ipv4,
+                             endpoint const& listen_on_ipv6)
+  : impl_{ new impl{ listen_on_ipv4, listen_on_ipv6 } }
+{
+}
 
-first_session::~first_session
-    ( void )
-{ }
+first_session::~first_session(void) {}
 
 std::error_code
-first_session::run
-    ( void )
-{ return impl_->run(); }
+first_session::run(void)
+{
+  return impl_->run();
+}
 
 void
-first_session::abort
-        ( void )
-{ impl_->abort(); }
+first_session::abort(void)
+{
+  impl_->abort();
+}
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

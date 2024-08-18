@@ -29,41 +29,41 @@
 #include "id.hpp"
 #include "ip_endpoint.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 ///
 struct peer final
 {
-    id id_;
-    ip_endpoint endpoint_;
+  id id_;
+  ip_endpoint endpoint_;
 };
 
 /**
  *
  */
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , peer const& p );
+std::ostream&
+operator<<(std::ostream& out, peer const& p);
 
 /**
  *
  */
 inline bool
-operator==
-    ( const peer & a
-    , const peer & b )
-{ return a.id_ == b.id_ && a.endpoint_ == b.endpoint_; }
+operator==(peer const& a, peer const& b)
+{
+  return a.id_ == b.id_ && a.endpoint_ == b.endpoint_;
+}
 
 /**
  *
  */
 inline bool
-operator!=
-    ( peer const& a
-    , peer const& b )
-{ return ! ( a == b ); }
+operator!=(peer const& a, peer const& b)
+{
+  return !(a == b);
+}
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

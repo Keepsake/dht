@@ -32,81 +32,60 @@
 #include <ks/dht/endpoint.hpp>
 #include <ks/dht/session_base.hpp>
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 
-class session final
-        : public session_base
+class session final : public session_base
 {
 public:
-    KS_DHT_EXPORT
-    session
-        ( endpoint const& initial_peer
-        , endpoint const& listen_on_ipv4 = endpoint{ "0.0.0.0", DEFAULT_PORT }
-        , endpoint const& listen_on_ipv6 = endpoint{ "::", DEFAULT_PORT } );
+  KS_DHT_EXPORT
+  session(endpoint const& initial_peer,
+          endpoint const& listen_on_ipv4 = endpoint{ "0.0.0.0", DEFAULT_PORT },
+          endpoint const& listen_on_ipv6 = endpoint{ "::", DEFAULT_PORT });
 
-    KS_DHT_EXPORT
-    ~session
-        ( void );
+  KS_DHT_EXPORT
+  ~session(void);
 
-    session
-        ( session const& )
-        = delete;
+  session(session const&) = delete;
 
-    session&
-    operator=
-        ( session const& )
-        = delete;
+  session& operator=(session const&) = delete;
 
-    KS_DHT_EXPORT
-    void
-    async_save
-        ( key_type const& key
-        , data_type const& data
-        , save_handler_type handler );
+  KS_DHT_EXPORT
+  void async_save(key_type const& key,
+                  data_type const& data,
+                  save_handler_type handler);
 
-    template< typename KeyType, typename DataType >
-    void
-    async_save
-        ( KeyType const& key
-        , DataType const& data
-        , save_handler_type handler )
-    {
-        async_save( key_type{ std::begin( key ), std::end( key ) }
-                  , data_type{ std::begin( data ), std::end( data ) }
-                  , std::move( handler ) );
-    }
+  template<typename KeyType, typename DataType>
+  void async_save(KeyType const& key,
+                  DataType const& data,
+                  save_handler_type handler)
+  {
+    async_save(key_type{ std::begin(key), std::end(key) },
+               data_type{ std::begin(data), std::end(data) },
+               std::move(handler));
+  }
 
-    KS_DHT_EXPORT
-    void
-    async_load
-        ( key_type const& key
-        , load_handler_type handler );
+  KS_DHT_EXPORT
+  void async_load(key_type const& key, load_handler_type handler);
 
-    template< typename KeyType >
-    void
-    async_load
-        ( KeyType const& key
-        , load_handler_type handler )
-    {
-        async_load( key_type{ std::begin( key ), std::end( key ) }
-                  , std::move( handler ) );
-    }
+  template<typename KeyType>
+  void async_load(KeyType const& key, load_handler_type handler)
+  {
+    async_load(key_type{ std::begin(key), std::end(key) }, std::move(handler));
+  }
 
-    KS_DHT_EXPORT
-    std::error_code
-    run
-        ( void );
+  KS_DHT_EXPORT
+  std::error_code run(void);
 
-    KS_DHT_EXPORT
-    void
-    abort
-        ( void );
+  KS_DHT_EXPORT
+  void abort(void);
 
 private:
-    struct impl;
+  struct impl;
 
 private:
-    std::unique_ptr< impl > impl_;
+  std::unique_ptr<impl> impl_;
 };
 
-} }
+} // namespace abiv1
+} // namespace ks::dht

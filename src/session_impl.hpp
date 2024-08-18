@@ -29,11 +29,12 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/udp.hpp>
 
-#include "message_socket.hpp"
-#include "engine.hpp"
 #include "concurrent_guard.hpp"
+#include "engine.hpp"
+#include "message_socket.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 /**
@@ -42,120 +43,101 @@ namespace detail {
 class session_impl
 {
 public:
-    ///
-    using data_type = std::vector< std::uint8_t >;
-    ///
-    using key_type = std::vector< std::uint8_t >;
-    ///
-    using socket_type = boost::asio::ip::udp::socket;
-    ///
-    using engine_type = ks::dht::detail::engine< socket_type >;
+  ///
+  using data_type = std::vector<std::uint8_t>;
+  ///
+  using key_type = std::vector<std::uint8_t>;
+  ///
+  using socket_type = boost::asio::ip::udp::socket;
+  ///
+  using engine_type = ks::dht::detail::engine<socket_type>;
 
 public:
-    /**
-     *
-     */
-    session_impl
-        ( endpoint const& listen_on_ipv4
-        , endpoint const& listen_on_ipv6 )
-            : io_service_{}
-            , engine_{ io_service_
-                     , listen_on_ipv4
-                     , listen_on_ipv6 }
-            , is_abort_requested_{}
-            , concurrent_guard_{}
-    { }
+  /**
+   *
+   */
+  session_impl(endpoint const& listen_on_ipv4, endpoint const& listen_on_ipv6)
+    : io_service_{}
+    , engine_{ io_service_, listen_on_ipv4, listen_on_ipv6 }
+    , is_abort_requested_{}
+    , concurrent_guard_{}
+  {
+  }
 
-    /**
-     *
-     */
-    session_impl
-        ( endpoint const& initial_peer
-        , endpoint const& listen_on_ipv4
-        , endpoint const& listen_on_ipv6 )
-            : io_service_{}
-            , engine_{ io_service_
-                     , initial_peer
-                     , listen_on_ipv4
-                     , listen_on_ipv6 }
-            , is_abort_requested_{}
-            , concurrent_guard_{}
-    { }
+  /**
+   *
+   */
+  session_impl(endpoint const& initial_peer,
+               endpoint const& listen_on_ipv4,
+               endpoint const& listen_on_ipv6)
+    : io_service_{}
+    , engine_{ io_service_, initial_peer, listen_on_ipv4, listen_on_ipv6 }
+    , is_abort_requested_{}
+    , concurrent_guard_{}
+  {
+  }
 
-    /**
-     *
-     */
-    template< typename HandlerType >
-    void
-    async_save
-        ( key_type const& key
-        , data_type const& data
-        , HandlerType && handler )
-    {
-        engine_.async_save( key
-                          , data
-                          , std::forward< HandlerType >( handler ) );
+  /**
+   *
+   */
+  template<typename HandlerType>
+  void async_save(key_type const& key,
+                  data_type const& data,
+                  HandlerType&& handler)
+  {
+    engine_.async_save(key, data, std::forward<HandlerType>(handler));
+  }
+
+  /**
+   *
+   */
+  template<typename HandlerType>
+  void async_load(key_type const& key, HandlerType&& handler)
+  {
+    engine_.async_load(key, std::forward<HandlerType>(handler));
+  }
+
+  /**
+   *
+   */
+  std::error_code run(void)
+  {
+    // Protect against concurrent invocation of this method.
+    ks::dht::detail::concurrent_guard::sentry s{ concurrent_guard_ };
+    if (!s)
+      return make_error_code(ALREADY_RUNNING);
+
+    is_abort_requested_ = false;
+
+    while (!is_abort_requested_) {
+      io_service_.run_one();
+      io_service_.poll();
     }
 
-    /**
-     *
-     */
-    template< typename HandlerType >
-    void
-    async_load
-        ( key_type const& key
-        , HandlerType && handler )
-    {
-        engine_.async_load( key
-                          , std::forward< HandlerType >( handler ) );
-    }
+    return make_error_code(RUN_ABORTED);
+  }
 
-    /**
-     *
-     */
-    std::error_code
-    run
-        ( void )
-    {
-        // Protect against concurrent invocation of this method.
-        ks::dht::detail::concurrent_guard::sentry s{ concurrent_guard_ };
-        if ( ! s )
-            return make_error_code( ALREADY_RUNNING );
+  /**
+   *
+   */
+  void abort(void)
+  {
+    auto service_stopper = [this](void) { is_abort_requested_ = true; };
 
-        is_abort_requested_ = false;
-
-        while ( ! is_abort_requested_ )
-        {
-            io_service_.run_one();
-            io_service_.poll();
-        }
-
-        return make_error_code( RUN_ABORTED );
-    }
-
-    /**
-     *
-     */
-    void
-    abort
-        ( void )
-    {
-        auto service_stopper = [ this ] ( void )
-        { is_abort_requested_ = true; };
-
-        io_service_.post( service_stopper );
-    }
+    io_service_.post(service_stopper);
+  }
 
 private:
-    ///
-    boost::asio::io_service io_service_;
-    ///
-    engine_type engine_;
-    ///
-    bool is_abort_requested_;
-    ///
-    ks::dht::detail::concurrent_guard concurrent_guard_;
+  ///
+  boost::asio::io_service io_service_;
+  ///
+  engine_type engine_;
+  ///
+  bool is_abort_requested_;
+  ///
+  ks::dht::detail::concurrent_guard concurrent_guard_;
 };
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht

@@ -25,21 +25,22 @@
 
 #include "id.hpp"
 
+#include <algorithm>
+#include <cassert>
 #include <cctype>
+#include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
-#include <cassert>
-#include <cstdint>
-#include <algorithm>
-#include <utility>
 #include <sstream>
-#include <iomanip>
+#include <utility>
 
 #include <openssl/sha.h>
 
 #include "error_impl.hpp"
 
-namespace ks::dht { inline namespace abiv1 {
+namespace ks::dht {
+inline namespace abiv1 {
 namespace detail {
 
 namespace {
@@ -47,84 +48,77 @@ namespace {
 constexpr std::size_t HEX_CHAR_PER_BLOCK = id::BYTE_PER_BLOCK * 2;
 
 id::block_type
-to_block
-    ( std::string const& s )
+to_block(std::string const& s)
 {
-    auto is_id_digit = []( int c ) { return std::isxdigit( c ); };
-    if ( ! std::all_of( s.begin(), s.end(), is_id_digit ) )
-        throw std::system_error{ make_error_code( INVALID_ID ) };
+  auto is_id_digit = [](int c) { return std::isxdigit(c); };
+  if (!std::all_of(s.begin(), s.end(), is_id_digit))
+    throw std::system_error{ make_error_code(INVALID_ID) };
 
-    std::stringstream converter{ s };
+  std::stringstream converter{ s };
 
-    std::uint64_t result;
-    converter >> std::hex >> result;
+  std::uint64_t result;
+  converter >> std::hex >> result;
 
-    assert( ! converter.fail() && "hexa to decimal conversion failed" );
+  assert(!converter.fail() && "hexa to decimal conversion failed");
 
-    return static_cast< id::block_type >( result );
+  return static_cast<id::block_type>(result);
 }
 
 } // namespace
 
-id::id
-    ( std::default_random_engine & random_engine )
+id::id(std::default_random_engine& random_engine)
 {
-    // The output of the generator is treated as boolean value.
-    std::uniform_int_distribution<> distribution
-            ( std::numeric_limits< block_type >::min()
-            , std::numeric_limits< block_type >::max() );
+  // The output of the generator is treated as boolean value.
+  std::uniform_int_distribution<> distribution(
+      std::numeric_limits<block_type>::min(),
+      std::numeric_limits<block_type>::max());
 
-    std::generate( blocks_.begin(), blocks_.end()
-                 , std::bind( distribution, std::ref( random_engine ) ) );
+  std::generate(blocks_.begin(),
+                blocks_.end(),
+                std::bind(distribution, std::ref(random_engine)));
 }
 
-id::id
-    ( std::string s )
+id::id(std::string s)
 {
-    auto constexpr STRING_MAX_SIZE = BLOCKS_COUNT * HEX_CHAR_PER_BLOCK;
+  auto constexpr STRING_MAX_SIZE = BLOCKS_COUNT * HEX_CHAR_PER_BLOCK;
 
-    if ( s.size() > STRING_MAX_SIZE )
-        throw std::system_error{ make_error_code( INVALID_ID ) };
+  if (s.size() > STRING_MAX_SIZE)
+    throw std::system_error{ make_error_code(INVALID_ID) };
 
-    // Insert leading 0.
-    s.insert( s.begin(), STRING_MAX_SIZE - s.size(), '0' );
+  // Insert leading 0.
+  s.insert(s.begin(), STRING_MAX_SIZE - s.size(), '0');
 
-    assert( s.size() == STRING_MAX_SIZE && "string padding failed" );
-    for ( std::size_t i = 0; i != BLOCKS_COUNT; ++ i )
-        blocks_[ i ] = to_block( s.substr( i * HEX_CHAR_PER_BLOCK
-                                         , HEX_CHAR_PER_BLOCK ) );
+  assert(s.size() == STRING_MAX_SIZE && "string padding failed");
+  for (std::size_t i = 0; i != BLOCKS_COUNT; ++i)
+    blocks_[i] = to_block(s.substr(i * HEX_CHAR_PER_BLOCK, HEX_CHAR_PER_BLOCK));
 }
 
-id::id
-    ( value_to_hash_type const& value )
+id::id(value_to_hash_type const& value)
 {
-    // Use OpenSSL crypto hash.
-    SHA1( value.data(), value.size(), blocks_.data() );
+  // Use OpenSSL crypto hash.
+  SHA1(value.data(), value.size(), blocks_.data());
 }
 
-std::ostream &
-operator<<
-    ( std::ostream & out
-    , id const& id_to_print )
+std::ostream&
+operator<<(std::ostream& out, id const& id_to_print)
 {
-    auto e = id_to_print.end();
+  auto e = id_to_print.end();
 
-    // Skip leading 0.
-    auto is_not_0 = []( id::block_type b ) { return b != 0; };
-    auto i = std::find_if( id_to_print.begin(), e, is_not_0 );
+  // Skip leading 0.
+  auto is_not_0 = [](id::block_type b) { return b != 0; };
+  auto i = std::find_if(id_to_print.begin(), e, is_not_0);
 
-    auto const previous_flags = out.flags();
+  auto const previous_flags = out.flags();
 
-    out << std::hex
-        << std::setfill( '0' )
-        << std::setw( HEX_CHAR_PER_BLOCK );
+  out << std::hex << std::setfill('0') << std::setw(HEX_CHAR_PER_BLOCK);
 
-    std::copy( i, e, std::ostream_iterator< std::uint64_t >{ out } );
+  std::copy(i, e, std::ostream_iterator<std::uint64_t>{ out });
 
-    out.flags( previous_flags );
+  out.flags(previous_flags);
 
-    return out;
+  return out;
 }
 
 } // namespace detail
-} }
+} // namespace abiv1
+} // namespace ks::dht
