@@ -19,6 +19,9 @@
           "type": "BOOL",
           "value": "OFF"
         }
+      },
+      "environment": {
+        "CXXFLAGS": "-fsanitize=address -fno-omit-frame-pointer"
       }
     }
   ],

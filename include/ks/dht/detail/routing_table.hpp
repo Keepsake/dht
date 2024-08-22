@@ -1,41 +1,17 @@
-// Copyright (c) 2013-2014, David Keller
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the University of California, Berkeley nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY DAVID KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
+#include <format>
 #include <list>
 #include <utility>
 #include <vector>
 
-#include <boost/iterator/iterator_facade.hpp>
-
-#include "id.hpp"
-#include "log.hpp"
+#include <ks/dht/detail/id.hpp>
 
 namespace ks::dht {
 inline namespace abiv1 {
@@ -49,11 +25,7 @@ template<typename PeerType>
 class routing_table final
 {
 public:
-  ///
-  enum
-  {
-    DEFAULT_K_BUCKET_SIZE = 20
-  };
+  static constexpr std::size_t default_k_bucket_size = 20;
 
   ///
   using peer_type = PeerType;
@@ -67,18 +39,13 @@ public:
   /**
    *  Construct the routing_table implementation.
    */
-  routing_table(id const& my_id,
-                std::size_t k_bucket_size = DEFAULT_K_BUCKET_SIZE)
-    : k_buckets_(id::BIT_SIZE)
+  constexpr routing_table(id const& my_id,
+                std::size_t k_bucket_size = default_k_bucket_size)
+    : k_buckets_(id::bit_size)
     , my_id_(my_id)
-    , peer_count_(0)
     , k_bucket_size_(k_bucket_size)
-    , largest_k_bucket_index_(0)
   {
-    assert(k_bucket_size_ > 0 && "k_bucket size must be > 0");
-
-    LOG_DEBUG(routing_table, this)
-        << "created with id '" << my_id_ << "'." << std::endl;
+    assert(k_bucket_size_ > 0 and "k_bucket size must be > 0");
   }
 
   /**
@@ -95,7 +62,7 @@ public:
    *  Count the number of peer in the routing table.
    *  @note Complexity: O(1).
    */
-  std::size_t peer_count(void) const { return peer_count_; }
+  constexpr std::size_t peer_count() const noexcept { return peer_count_; }
 
   /**
    *  Register a peer into the routing table.
@@ -106,9 +73,6 @@ public:
    */
   bool push(id const& peer_id, peer_type const& new_peer)
   {
-    LOG_DEBUG(routing_table, this) << "pushing peer '" << new_peer << "' as '"
-                                   << peer_id << "'." << std::endl;
-
     auto k_bucket_index = find_k_bucket_index(peer_id);
     auto& bucket = k_buckets_[k_bucket_index];
 
@@ -143,9 +107,6 @@ public:
    */
   bool remove(id const& peer_id)
   {
-    LOG_DEBUG(routing_table, this)
-        << "removing peer '" << peer_id << "'." << std::endl;
-
     // Find the closer bucket.
     auto& bucket = k_buckets_[find_k_bucket_index(peer_id)];
 
@@ -174,56 +135,28 @@ public:
    */
   iterator find(id const& id_to_find)
   {
-    LOG_DEBUG(routing_table, this)
-        << "finding peer near '" << id_to_find << "'." << std::endl;
-
     auto index =
         std::max(get_lowest_k_bucket_index(), find_k_bucket_index(id_to_find));
 
     auto i = std::next(k_buckets_.begin(), index);
 
     // Find the first non empty k_bucket.
-    while (i->empty() && i != k_buckets_.begin())
+    while (i->empty() and i != k_buckets_.begin())
       --i;
 
-    return iterator(&k_buckets_, i, i->begin());
+    return iterator{&k_buckets_, i, i->begin()};
   }
 
   /**
    *  @return An iterator to the end of the routing table.
    */
-  iterator end(void)
+  iterator end()
   {
-    assert(k_buckets_.size() > 0 &&
+    assert(k_buckets_.size() > 0 and
            "routing_table must always contains k_buckets");
     auto const first_k_bucket = k_buckets_.begin();
 
-    return iterator(&k_buckets_, first_k_bucket, first_k_bucket->end());
-  }
-
-  /**
-   *  Print the routing table content.
-   *  @param out The output stream.
-   *  @param table The routing table to print.
-   *  @return A reference to the output stream.
-   */
-  friend std::ostream& operator<<(std::ostream& out, routing_table const& table)
-  {
-    out << "{" << std::endl
-        << "\t\"id\": " << table.my_id_ << "," << std::endl
-        << "\t\"peer_count\": " << table.peer_count_ << ',' << std::endl
-        << "\t\"k_bucket_size\": " << table.k_bucket_size_ << ',' << std::endl
-        << "\t\"k_buckets\": " << std::endl;
-
-    for (std::size_t i = 0, e = table.k_buckets_.size(); i != e; ++i) {
-      out << "\t{" << std::endl
-          << "\t\t\"index\": " << i << "," << std::endl
-          << "\t\t\"bit_value\": " << bool(table.my_id_[i]) << "," << std::endl
-          << "\t\t\"peer_count\": " << table.k_buckets_[i].size() << std::endl
-          << "\t}" << std::endl;
-    }
-
-    return out << "}" << std::endl;
+    return iterator{&k_buckets_, first_k_bucket, first_k_bucket->end()};
   }
 
 private:
@@ -233,23 +166,22 @@ private:
   /// @note Algorithms expect a vector here, do not change this.
   using k_buckets = std::vector<k_bucket>;
 
+  friend std::formatter<routing_table>;
+
 private:
   /**
    *
    */
-  std::size_t find_k_bucket_index(id const& id_to_find) const
+  constexpr std::size_t find_k_bucket_index(id const& id_to_find) const noexcept
   {
     // Find closest bucket from the peer id.
     // i.e. the index of the first different bit
     // in the id of the new peer vs our id is equal to the
     // index of the closest bucket in the buckets container.
-    std::size_t bit_index = 0;
-    while (bit_index < id::BIT_SIZE - 1 &&
+    std::size_t bit_index{};
+    while (bit_index < id::bit_size - 1 and
            id_to_find[bit_index] == my_id_[bit_index])
       ++bit_index;
-
-    LOG_DEBUG(routing_table, this)
-        << "found bucket at index '" << bit_index << "'." << std::endl;
 
     return bit_index;
   }
@@ -257,16 +189,14 @@ private:
   /**
    *
    */
-  std::size_t get_lowest_k_bucket_index(void) const
+  constexpr std::size_t get_lowest_k_bucket_index() const noexcept
   {
-    std::size_t i = 0ULL, e = k_buckets_.size() - 1;
+    std::size_t i{};
+    std::size_t e{k_buckets_.size() - 1};
 
-    for (std::size_t peer_count = 0ULL; i != e && peer_count <= k_bucket_size_;
+    for (std::size_t peer_count{}; i != e and peer_count <= k_bucket_size_;
          ++i)
       peer_count += k_buckets_[i].size();
-
-    LOG_DEBUG(routing_table, this)
-        << "bottom bucket is at index '" << i << "'." << std::endl;
 
     return i;
   }
@@ -286,27 +216,35 @@ private:
   /// Own id.
   id const my_id_;
   /// Keep a track of peer count to make size() complexity O(1).
-  std::size_t peer_count_;
+  std::size_t peer_count_{};
   /// This is max number of peers stored per k_bucket.
   std::size_t k_bucket_size_;
   /// This keeps the index of the largest subtree.
-  std::size_t largest_k_bucket_index_;
+  std::size_t largest_k_bucket_index_{};
 };
 
 /**
  *
  */
 template<typename PeerType>
-class routing_table<PeerType>::iterator
-  : public boost::iterator_facade<iterator,
-                                  typename routing_table::value_type,
-                                  boost::single_pass_traversal_tag>
+class routing_table<PeerType>::iterator final
 {
+public:
+  using difference_type = std::ptrdiff_t;
+
+  using value_type = typename routing_table::value_type;
+
+  using reference = value_type &;
+
+  using pointer = value_type *;
+
+  using iterator_category = std::forward_iterator_tag;
+
 public:
   /**
    *
    */
-  iterator(k_buckets* buckets,
+  constexpr iterator(k_buckets* buckets,
            typename k_buckets::iterator current_bucket,
            typename k_bucket::iterator current_peer)
     : k_buckets_(buckets)
@@ -315,73 +253,77 @@ public:
   {
   }
 
-  /**
-   *
-   */
-  iterator& operator=(iterator const& o)
-  {
-    k_buckets_ = o.k_buckets_;
-    current_k_bucket_ = o.current_k_bucket_;
-    current_entry_ = o.current_entry_;
+  constexpr iterator(iterator const& o) = default;
+  constexpr iterator& operator=(iterator const& o) = default;
 
-    return *this;
-  }
+  constexpr bool operator==(iterator const& o) const noexcept = default;
 
-private:
-  friend class boost::iterator_core_access;
-
-  /**
-   *
-   */
-  void increment(void)
+  constexpr iterator& operator++() noexcept
   {
     ++current_entry_;
 
     // If the current entry is not at the end of the bucket
     // then there is nothing more to do.
     if (current_entry_ != current_k_bucket_->end())
-      return;
+      return *this;
 
     // If the current bucket is already the first (far)
     // then there is nothing more to do, we reach the end of the routing table.
     if (current_k_bucket_ == k_buckets_->begin())
-      return;
+      return *this;
 
     // Go to the next non-empty bucket and start from its first entry.
     do
       --current_k_bucket_;
-    while (current_k_bucket_->empty() &&
+    while (current_k_bucket_->empty() and
            current_k_bucket_ != k_buckets_->begin());
     current_entry_ = current_k_bucket_->begin();
+
+    return *this;
   }
 
-  /**
-   *
-   */
-  bool equal(iterator const& o) const
+  constexpr iterator& operator++(int) noexcept
   {
-    return k_buckets_ == o.k_buckets_ &&
-           current_k_bucket_ == o.current_k_bucket_ &&
-           current_entry_ == o.current_entry_;
+    auto old{*this};
+   
+    operator++();
+
+    return old;
   }
 
-  /**
-   *
-   */
-  typename routing_table::value_type& dereference(void) const
+  reference operator*() const noexcept
   {
     return *current_entry_;
   }
 
+  pointer operator->() const noexcept
+  {
+    return std::addressof(operator*());
+  }
+
 private:
-  ///
   k_buckets* k_buckets_;
-  ///
   typename k_buckets::iterator current_k_bucket_;
-  ///
   typename k_bucket::iterator current_entry_;
 };
 
 } // namespace detail
 } // namespace abiv1
 } // namespace ks::dht
+
+template<typename PeerType>
+struct std::formatter<ks::dht::detail::routing_table<PeerType>> final
+{
+  constexpr auto parse(auto& ctx) const { return ctx.begin(); }
+
+  auto format(auto const& routing_table, auto& ctx) const
+  {
+    ctx.advance_to(std::format_to(ctx.out(),
+                                  R"({{"id":"{}","peer_count":{},)"
+                                  R"("k_bucket_size":{}}})",
+                                  routing_table.my_id_,
+                                  routing_table.peer_count_,
+                                  routing_table.k_bucket_size_));
+    return ctx.out();
+  }
+};

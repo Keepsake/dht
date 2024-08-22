@@ -1,29 +1,6 @@
-// Copyright (c) 2013-2014, David Keller
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
+// SPDX-License-Identifier: MIT
 //
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the University of California, Berkeley nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY DAVID KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#include <sstream>
+#include <format>
 
 #include <gtest/gtest.h>
 
@@ -33,109 +10,122 @@
 
 namespace k = ks::dht;
 
-TEST(endpoint_test_construction, can_be_constructed_with_service_as_string)
+TEST(endpoint_test, can_be_printed)
 {
-  k::endpoint{ "127.0.0.1", "1234" };
+  {
+    k::endpoint_v4 const e{
+      .ip = asio::ip::make_address_v4("127.0.0.1"),
+      .port = 1234,
+    };
+    ASSERT_EQ(std::format("{}", e), "127.0.0.1:1234");
+  }
+  {
+    k::endpoint const e{ k::endpoint_v4{
+        .ip = asio::ip::make_address_v4("127.0.0.1"),
+        .port = 1234,
+    } };
+    ASSERT_EQ(std::format("{}", e), "127.0.0.1:1234");
+  }
+  {
+    k::endpoint_v6 const e{
+      .ip = asio::ip::make_address_v6("::1"),
+      .port = 1234,
+    };
+    ASSERT_EQ(std::format("{}", e), "::1:1234");
+  }
+  {
+    k::endpoint const e{ k::endpoint_v6{
+        .ip = asio::ip::make_address_v6("::1"),
+        .port = 1234,
+    } };
+    ASSERT_EQ(std::format("{}", e), "::1:1234");
+  }
 }
 
-TEST(endpoint_test_construction, can_be_constructed_with_service_as_integer)
+TEST(endpoint_test, can_serialize_v4)
 {
-  k::endpoint{ "127.0.0.1", 1234 };
+  k::endpoint_v4 const endpoint_out{
+    .ip = asio::ip::make_address_v4("127.0.0.1"),
+    .port = 1234,
+  };
+
+  std::vector<std::byte> buffer;
+  ASSERT_FALSE(ks::serialization::save(buffer, endpoint_out));
+
+  k::endpoint_v4 endpoint_in;
+  ASSERT_FALSE(ks::serialization::load(buffer, endpoint_in));
+
+  ASSERT_EQ(endpoint_in, endpoint_out);
+
+  while (not buffer.empty()) {
+    buffer.pop_back();
+    ASSERT_EQ(ks::serialization::load(buffer, endpoint_in),
+              ks::serialization::error::buffer_underrun);
+  }
 }
 
-TEST(endpoint_test_getter_and_setters, can_be_inspected_and_modified)
+TEST(endpoint_test, can_serialize_variant_v4)
 {
-  k::endpoint e{ "127.0.0.1", "1234" };
-  ASSERT_EQ("127.0.0.1", e.address());
-  ASSERT_EQ("1234", e.service());
+  k::endpoint const endpoint_out{ k::endpoint_v4{
+      .ip = asio::ip::make_address_v4("127.0.0.1"),
+      .port = 1234,
+  } };
 
-  e.address("192.168.0.1");
-  e.service("4567");
-  ASSERT_EQ("192.168.0.1", e.address());
-  ASSERT_EQ("4567", e.service());
+  std::vector<std::byte> buffer;
+  ASSERT_FALSE(ks::serialization::save(buffer, endpoint_out));
+
+  k::endpoint endpoint_in;
+  ASSERT_FALSE(ks::serialization::load(buffer, endpoint_in));
+
+  ASSERT_EQ(endpoint_in, endpoint_out);
+
+  while (not buffer.empty()) {
+    buffer.pop_back();
+    ASSERT_EQ(ks::serialization::load(buffer, endpoint_in),
+              ks::serialization::error::buffer_underrun);
+  }
 }
 
-TEST(endpoint_test_getter_and_setters, can_be_printed)
+TEST(endpoint_test, can_serialize_v6)
 {
-  std::ostringstream out;
+  k::endpoint_v6 const endpoint_out{
+    .ip = asio::ip::make_address_v6("::1"),
+    .port = 1234,
+  };
 
-  out << k::endpoint{ "127.0.0.1", 1234 };
+  std::vector<std::byte> buffer;
+  ASSERT_FALSE(ks::serialization::save(buffer, endpoint_out));
 
-  ASSERT_EQ(out.str(), "127.0.0.1:1234");
+  k::endpoint_v6 endpoint_in;
+  ASSERT_FALSE(ks::serialization::load(buffer, endpoint_in));
+
+  ASSERT_EQ(endpoint_in, endpoint_out);
+
+  while (not buffer.empty()) {
+    buffer.pop_back();
+    ASSERT_EQ(ks::serialization::load(buffer, endpoint_in),
+              ks::serialization::error::buffer_underrun);
+  }
 }
 
-TEST(endpoint_test_getter_and_setters, can_be_parsed)
+TEST(endpoint_test, can_serialize_variant_v6)
 {
-  // IPv4 + numeric port
-  {
-    k::endpoint e;
-    std::istringstream in{ "127.0.0.1:1234" };
-    in >> e;
-    ASSERT_FALSE(in.fail());
-    ASSERT_EQ("127.0.0.1", e.address());
-    ASSERT_EQ("1234", e.service());
-  }
+  k::endpoint const endpoint_out{ k::endpoint_v6{
+      .ip = asio::ip::make_address_v6("::1"),
+      .port = 1234,
+  } };
 
-  // IPv6 + numeric port
-  {
-    k::endpoint e;
-    std::istringstream in{ "[AA:bb::1]:1234" };
-    in >> e;
-    ASSERT_FALSE(in.fail());
-    ASSERT_EQ("AA:bb::1", e.address());
-    ASSERT_EQ("1234", e.service());
-  }
+  std::vector<std::byte> buffer;
+  ASSERT_FALSE(ks::serialization::save(buffer, endpoint_out));
 
-  // IPv4 + named port
-  {
-    k::endpoint e;
-    std::istringstream in{ "127.0.0.1:http" };
-    in >> e;
-    ASSERT_FALSE(in.fail());
-    ASSERT_EQ("127.0.0.1", e.address());
-    ASSERT_EQ("http", e.service());
-  }
+  k::endpoint endpoint_in;
+  ASSERT_FALSE(ks::serialization::load(buffer, endpoint_in));
 
-  // IPv6 + named port
-  {
-    k::endpoint e;
-    std::istringstream in{ "[AA:bb::1]:http" };
-    in >> e;
-    ASSERT_FALSE(in.fail());
-    ASSERT_EQ("AA:bb::1", e.address());
-    ASSERT_EQ("http", e.service());
-  }
+  ASSERT_EQ(endpoint_in, endpoint_out);
 
-  // Invalid because missing address/service separator
-  // Expected the provided endpoint to remaining unmodified
-  {
-    k::endpoint e{ "0.0.0.0", "http" };
-    std::istringstream in{ "192.168.0.1http" };
-    in >> e;
-    ASSERT_TRUE(in.fail());
-    ASSERT_EQ("0.0.0.0", e.address());
-    ASSERT_EQ("http", e.service());
-  }
-
-  // Invalid because missing IPv6 leading bracket separator
-  // Expected the provided endpoint to remaining unmodified
-  {
-    k::endpoint e{ "0.0.0.0", "http" };
-    std::istringstream in{ "AA:bb::1]:http" };
-    in >> e;
-    ASSERT_TRUE(in.fail());
-    ASSERT_EQ("0.0.0.0", e.address());
-    ASSERT_EQ("http", e.service());
-  }
-
-  // Invalid because missing IPv6 trailing bracket separator
-  // Expected the provided endpoint to remaining unmodified
-  {
-    k::endpoint e{ "0.0.0.0", "http" };
-    std::istringstream in{ "[AA:bb::1:http" };
-    in >> e;
-    ASSERT_TRUE(in.fail());
-    ASSERT_EQ("0.0.0.0", e.address());
-    ASSERT_EQ("http", e.service());
+  while (not buffer.empty()) {
+    buffer.pop_back();
+    ASSERT_EQ(ks::serialization::load(buffer, endpoint_in),
+              ks::serialization::error::buffer_underrun);
   }
 }

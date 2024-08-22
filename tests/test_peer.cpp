@@ -1,64 +1,47 @@
+// SPDX-License-Identifier: MIT
 
-// Copyright (c) 2013-2014, David Keller
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the University of California, Berkeley nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY DAVID KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#include <sstream>
-#include <utility>
+#include <cstddef>
+#include <vector>
 
 #include <gtest/gtest.h>
 
+#include <ks/dht/detail/peer.hpp>
+
 #include "common.hpp"
-#include "peer.hpp"
 
-namespace kd = ks::dht::detail;
+namespace k = ks::dht;
+namespace kd = k::detail;
 
-class peer_test_usage : public testing::Test
+TEST(peer_test_usage, can_be_printed)
 {
-protected:
-  peer_test_usage()
-    : id_{}
-    , ip_endpoint_(kd::to_ip_endpoint("127.0.0.1", 1234))
-  {
-  }
+  kd::peer const peer{ .id{ "0123456789abcdef" },
+                       .endpoint{ k::endpoint_v4{
+                           asio::ip::make_address_v4("127.0.0.1"),
+                           1234,
+                       } } };
 
-  kd::id id_;
-  kd::ip_endpoint ip_endpoint_;
-};
-
-TEST_F(peer_test_usage, can_be_constructed)
-{
-  std::ignore = kd::peer{ id_, ip_endpoint_ };
+  ASSERT_EQ(std::format("{}", peer), "0123456789abcdef/127.0.0.1:1234");
 }
 
-TEST_F(peer_test_usage, can_be_printed)
+TEST(peer_test_usage, can_be_serialized)
 {
-  std::ostringstream out;
+  kd::peer const peer_out{ .id{ "0123456789abcdef" },
+                           .endpoint{ k::endpoint_v4{
+                               asio::ip::make_address_v4("127.0.0.1"),
+                               1234,
+                           } } };
 
-  out << kd::peer{ id_, ip_endpoint_ };
+  std::vector<std::byte> buffer;
+  ASSERT_FALSE(ks::serialization::save(buffer, peer_out));
 
-  std::ostringstream expected;
-  expected << id_ << "@" << ip_endpoint_;
-  ASSERT_EQ(out.str(), expected.str());
+  kd::peer peer_in;
+  ASSERT_FALSE(ks::serialization::load(buffer, peer_in));
+
+  ASSERT_EQ(peer_in, peer_out);
+
+  while (not buffer.empty()) {
+    buffer.pop_back();
+    ASSERT_EQ(ks::serialization::load(buffer, peer_in),
+              ks::serialization::error::buffer_underrun);
+  }
 }

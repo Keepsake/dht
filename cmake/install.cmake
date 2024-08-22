@@ -4,7 +4,7 @@ include(CMakePackageConfigHelpers)
 
 set(package_dependencies [[
 include(CMakeFindDependencyMacro)
-find_dependency(Asio 1.30 CONFIG)
+find_dependency(asio CONFIG)
 find_dependency(KsCrypto 1.1.2 CONFIG)
 find_dependency(KsSerialization 1.1.2 CONFIG)
 ]])
@@ -32,7 +32,7 @@ if(KS_DHT_INSTALL)
   install(
     TARGETS ks-dht
     EXPORT ${PROJECT_NAME}Targets
-    FILE_SET headers
+    FILE_SET HEADERS
   )
 
   install(

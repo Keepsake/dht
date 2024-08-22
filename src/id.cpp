@@ -1,43 +1,19 @@
-// Copyright (c) 2013-2014, David Keller
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the University of California, Berkeley nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY DAVID KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#include "id.hpp"
+// SPDX-License-Identifier: MIT
 
 #include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <cstdint>
+#include <functional>
 #include <iomanip>
-#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <utility>
 
 #include <openssl/sha.h>
 
-#include "error_impl.hpp"
+#include <ks/dht/detail/id.hpp>
+#include <ks/dht/error.hpp>
 
 namespace ks::dht {
 inline namespace abiv1 {
@@ -45,14 +21,12 @@ namespace detail {
 
 namespace {
 
-constexpr std::size_t HEX_CHAR_PER_BLOCK = id::BYTE_PER_BLOCK * 2;
-
 id::block_type
 to_block(std::string const& s)
 {
   auto is_id_digit = [](int c) { return std::isxdigit(c); };
   if (!std::all_of(s.begin(), s.end(), is_id_digit))
-    throw std::system_error{ make_error_code(INVALID_ID) };
+    throw std::system_error{ error::invalid_id };
 
   std::stringstream converter{ s };
 
@@ -73,50 +47,51 @@ id::id(std::default_random_engine& random_engine)
       std::numeric_limits<block_type>::min(),
       std::numeric_limits<block_type>::max());
 
-  std::generate(blocks_.begin(),
-                blocks_.end(),
-                std::bind(distribution, std::ref(random_engine)));
+  std::generate(blocks_.begin(), blocks_.end(), [&] {
+    return distribution(random_engine);
+  });
 }
 
 id::id(std::string s)
 {
-  auto constexpr STRING_MAX_SIZE = BLOCKS_COUNT * HEX_CHAR_PER_BLOCK;
+  static constexpr std::size_t hex_char_per_block = id::byte_per_block * 2;
+  static constexpr std::size_t string_max_size =
+      blocks_count * hex_char_per_block;
 
-  if (s.size() > STRING_MAX_SIZE)
-    throw std::system_error{ make_error_code(INVALID_ID) };
+  if (s.size() > string_max_size)
+    throw std::system_error{ error::invalid_id };
 
   // Insert leading 0.
-  s.insert(s.begin(), STRING_MAX_SIZE - s.size(), '0');
+  s.insert(s.begin(), string_max_size - s.size(), '0');
 
-  assert(s.size() == STRING_MAX_SIZE && "string padding failed");
-  for (std::size_t i = 0; i != BLOCKS_COUNT; ++i)
-    blocks_[i] = to_block(s.substr(i * HEX_CHAR_PER_BLOCK, HEX_CHAR_PER_BLOCK));
+  assert(s.size() == string_max_size && "string padding failed");
+  for (std::size_t i = 0; i != blocks_count; ++i)
+    blocks_[i] = to_block(s.substr(i * hex_char_per_block, hex_char_per_block));
 }
 
-id::id(value_to_hash_type const& value)
+id::id(std::span<std::byte const> value) noexcept
 {
   // Use OpenSSL crypto hash.
-  SHA1(value.data(), value.size(), blocks_.data());
+  SHA1(reinterpret_cast<std::uint8_t const*>(value.data()),
+       value.size(),
+       blocks_.data());
 }
 
-std::ostream&
-operator<<(std::ostream& out, id const& id_to_print)
+id
+id::operator-(id const& other) const noexcept
 {
-  auto e = id_to_print.end();
+  id result;
 
-  // Skip leading 0.
-  auto is_not_0 = [](id::block_type b) { return b != 0; };
-  auto i = std::find_if(id_to_print.begin(), e, is_not_0);
+  std::ranges::transform(
+      blocks_, other.blocks_, result.blocks_.begin(), std::bit_xor<>{});
 
-  auto const previous_flags = out.flags();
+  return result;
+}
 
-  out << std::hex << std::setfill('0') << std::setw(HEX_CHAR_PER_BLOCK);
-
-  std::copy(i, e, std::ostream_iterator<std::uint64_t>{ out });
-
-  out.flags(previous_flags);
-
-  return out;
+bool
+id::operator<(id const& other) const noexcept
+{
+  return std::ranges::lexicographical_compare(blocks_, other.blocks_);
 }
 
 } // namespace detail

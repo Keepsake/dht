@@ -1,39 +1,73 @@
-// Copyright (c) 2013-2014, David Keller
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the University of California, Berkeley nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY DAVID KELLER AND CONTRIBUTORS ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// SPDX-License-Identifier: MIT
 
 #include <ks/dht/error.hpp>
 
-#include "error_impl.hpp"
+#include <string>
 
 namespace ks::dht {
 inline namespace abiv1 {
 
-std::error_condition
-make_error_condition(error_type code) noexcept
+namespace {
+
+/**
+ *
+ */
+struct dht_category final : std::error_category
 {
-  return { static_cast<int>(code), detail::error_category() };
+  char const* name() const noexcept override { return "dht"; }
+
+  std::string message(int condition) const noexcept override
+  {
+    switch (static_cast<error>(condition)) {
+      case error::run_aborted:
+        return "run aborted";
+      case error::initial_peer_failed_to_respond:
+        return "initial peer failed to respond";
+      case error::missing_peers:
+        return "missing peers";
+      case error::unimplemented:
+        return "unimplemented";
+      case error::invalid_id:
+        return "invalid id";
+      case error::truncated_id:
+        return "truncated id";
+      case error::truncated_endpoint:
+        return "truncated endpoint";
+      case error::truncated_address:
+        return "truncated address";
+      case error::truncated_header:
+        return "truncated header";
+      case error::truncated_size:
+        return "truncated size";
+      case error::corrupted_body:
+        return "corrupted body";
+      case error::unknown_protocol_version:
+        return "unknown protocol version";
+      case error::unassociated_message_id:
+        return "unassociated message id";
+      case error::invalid_ipv4_address:
+        return "invalid ipv4 address";
+      case error::invalid_ipv6_address:
+        return "invalid ipv6 address";
+      case error::value_not_found:
+        return "value not found";
+      case error::timer_malfunction:
+        return "timer malfunction";
+      case error::already_running:
+        return "already running";
+      default:
+        return "unknown error";
+    }
+  }
+};
+
+} // namespace
+
+std::error_category const&
+error_category() noexcept
+{
+  static dht_category const category_{};
+  return category_;
 }
 
 } // namespace abiv1

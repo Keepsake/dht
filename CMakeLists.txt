@@ -10,7 +10,7 @@ include(cmake/project_setup.cmake)
 
 add_subdirectory(src)
 add_subdirectory(include)
-add_subdirectory(examples)
+#add_subdirectory(examples)
 add_subdirectory(tests)
 
 include(cmake/install.cmake)

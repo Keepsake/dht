@@ -35,45 +35,44 @@
 namespace k = ks::dht;
 
 bool
-compare_enum_to_message(char const* name, k::error_type const& error)
+compare_enum_to_message(char const* name, k::error const& error)
 {
-  auto message = make_error_condition(error).message();
+  auto message = make_error_code(error).message();
 
   std::replace(message.begin(), message.end(), ' ', '_');
-  std::transform(message.begin(), message.end(), message.begin(), ::toupper);
 
   return name == message;
 }
 
-#define DHT_TEST_ERROR(e) ASSERT_TRUE(compare_enum_to_message(#e, k::e))
+#define DHT_TEST_ERROR(e) ASSERT_TRUE(compare_enum_to_message(#e, k::error::e))
 
 TEST(error_test_usage, error_message_follows_the_error_name)
 {
-  DHT_TEST_ERROR(UNKNOWN_ERROR);
-  DHT_TEST_ERROR(RUN_ABORTED);
-  DHT_TEST_ERROR(INITIAL_PEER_FAILED_TO_RESPOND);
-  DHT_TEST_ERROR(MISSING_PEERS);
-  DHT_TEST_ERROR(INVALID_ID);
-  DHT_TEST_ERROR(TRUNCATED_ID);
-  DHT_TEST_ERROR(TRUNCATED_HEADER);
-  DHT_TEST_ERROR(TRUNCATED_ENDPOINT);
-  DHT_TEST_ERROR(TRUNCATED_ADDRESS);
-  DHT_TEST_ERROR(TRUNCATED_SIZE);
-  DHT_TEST_ERROR(UNKNOWN_PROTOCOL_VERSION);
-  DHT_TEST_ERROR(CORRUPTED_BODY);
-  DHT_TEST_ERROR(UNASSOCIATED_MESSAGE_ID);
-  DHT_TEST_ERROR(INVALID_IPV4_ADDRESS);
-  DHT_TEST_ERROR(INVALID_IPV6_ADDRESS);
-  DHT_TEST_ERROR(UNIMPLEMENTED);
-  DHT_TEST_ERROR(VALUE_NOT_FOUND);
-  DHT_TEST_ERROR(TIMER_MALFUNCTION);
-  DHT_TEST_ERROR(ALREADY_RUNNING);
-}
-
-TEST(error_test_usage, error_category_is_dht)
-{
-  auto e = make_error_condition(k::UNKNOWN_ERROR);
-  ASSERT_STREQ("dht", e.category().name());
+  DHT_TEST_ERROR(unknown_error);
+  DHT_TEST_ERROR(run_aborted);
+  DHT_TEST_ERROR(initial_peer_failed_to_respond);
+  DHT_TEST_ERROR(missing_peers);
+  DHT_TEST_ERROR(invalid_id);
+  DHT_TEST_ERROR(truncated_id);
+  DHT_TEST_ERROR(truncated_header);
+  DHT_TEST_ERROR(truncated_endpoint);
+  DHT_TEST_ERROR(truncated_address);
+  DHT_TEST_ERROR(truncated_size);
+  DHT_TEST_ERROR(unknown_protocol_version);
+  DHT_TEST_ERROR(corrupted_body);
+  DHT_TEST_ERROR(unassociated_message_id);
+  DHT_TEST_ERROR(invalid_ipv4_address);
+  DHT_TEST_ERROR(invalid_ipv6_address);
+  DHT_TEST_ERROR(unimplemented);
+  DHT_TEST_ERROR(value_not_found);
+  DHT_TEST_ERROR(timer_malfunction);
+  DHT_TEST_ERROR(already_running);
 }
 
 #undef DHT_TEST_ERROR
+
+TEST(error_test_usage, error_category_is_dht)
+{
+  auto e = make_error_code(k::error::unknown_error);
+  ASSERT_STREQ("dht", e.category().name());
+}
