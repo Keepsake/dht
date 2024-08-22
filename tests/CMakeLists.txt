@@ -58,7 +58,7 @@ target_compile_definitions(ks-dht-impl-unit-tests
 
 target_link_libraries(ks-dht-impl-unit-tests
   PRIVATE
-    Boost::headers
+    asio::asio
     GTest::gmock
     GTest::gtest_main
     KsDht::ks-dht-impl

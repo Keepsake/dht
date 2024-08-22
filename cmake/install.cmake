@@ -4,20 +4,20 @@ include(CMakePackageConfigHelpers)
 
 set(package_dependencies [[
 include(CMakeFindDependencyMacro)
-find_dependency(Asio 1.30 CONFIG)
+find_dependency(asio CONFIG)
 find_dependency(KsCrypto 1.1.2 CONFIG)
 find_dependency(KsSerialization 1.1.2 CONFIG)
 ]])
+
+write_basic_package_version_file(
+  ${PROJECT_NAME}ConfigVersion.cmake
+  COMPATIBILITY SameMajorVersion
+)
 
 export(
   TARGETS ks-dht
   FILE ${PROJECT_NAME}Targets.cmake
   NAMESPACE ${PROJECT_NAME}::
-)
-
-write_basic_package_version_file(
-  ${PROJECT_NAME}ConfigVersion.cmake
-  COMPATIBILITY SameMajorVersion
 )
 
 configure_file(
@@ -31,7 +31,6 @@ export(PACKAGE ${PROJECT_NAME})
 if(KS_DHT_INSTALL)
   install(
     TARGETS ks-dht
-    EXPORT ${PROJECT_NAME}Targets
     FILE_SET headers
   )
 

@@ -18,7 +18,7 @@ namespace detail {
 template<typename TrackerType,
          typename RoutingTableType,
          typename EndpointsType>
-struct discover_neighbors_task final
+struct join_task final
 {
   id const& my_id_;
   TrackerType & tracker_;
@@ -80,19 +80,58 @@ struct discover_neighbors_task final
     for (auto const& peer : response.peers_)
       routing_table_.push(peer.id_, peer.endpoint_);
 
+    notify_neighbors(self);
+  }
+
+  /**
+   *  Refresh each bucket.
+   */
+  void notify_neighbors(auto & self)
+  {
+    auto closest_neighbor_id = get_closest_neighbor_id();
+    auto i = id::BIT_SIZE - 1;
+
+    // Skip empty buckets.
+    while (i and closest_neighbor_id[i] == my_id_[i])
+      --i;
+
+    // Send refresh from closest neighbor bucket to farest bucket.
+    auto refresh_id = my_id_;
+    while (i) {
+      refresh_id[i] = !refresh_id[i];
+      start_notify_peer_task(refresh_id, tracker_, routing_table_);
+      --i;
+    }
+
     self.complete(std::error_code{});
+  }
+
+  /**
+   *
+   */
+  id get_closest_neighbor_id()
+  {
+    // Find our closest neighbor.
+    auto closest_neighbor = routing_table_.find(my_id_);
+    if (closest_neighbor->first == my_id_)
+      ++closest_neighbor;
+
+    assert(closest_neighbor != routing_table_.end() &&
+           "at least one peer is known");
+
+    return closest_neighbor->first;
   }
 };
 
 template<typename Completion>
 auto
-start_discover_neighbors_task(id const& my_id,
-                              auto & tracker,
-                              auto & routing_table,
-                              auto const& endpoints_to_query,
-                              Completion && completion)
+async_join(id const& my_id,
+           auto & tracker,
+           auto & routing_table,
+           auto const& endpoints_to_query,
+           Completion && completion)
 {
-  discover_neighbors_task task{my_id, tracker, routing_table, endpoints_to_query};
+  join_task task{my_id, tracker, routing_table, endpoints_to_query};
 
   return asio::async_compose<Completion, void(std::error_code)>
       (std::move(task), std::forward<Completion>(completion));

@@ -3,9 +3,6 @@
 add_library(ks-dht
   endpoint.cpp
   error.cpp
-  error.cpp
-  error_impl.cpp
-  first_session.cpp
   id.cpp
   ip_endpoint.cpp
   log.cpp
@@ -13,8 +10,6 @@ add_library(ks-dht
   message_serializer.cpp
   peer.cpp
   response_callbacks.cpp
-  session.cpp
-  session_base.cpp
   timer.cpp
 )
 
@@ -29,11 +24,8 @@ target_sources(
         ${PROJECT_SOURCE_DIR}/include/
       FILES
         ${PROJECT_BINARY_DIR}/include/ks/dht/detail/symbol_visibility.hpp
-        ${PROJECT_SOURCE_DIR}/include/ks/dht/endpoint.hpp
         ${PROJECT_SOURCE_DIR}/include/ks/dht/error.hpp
-        ${PROJECT_SOURCE_DIR}/include/ks/dht/first_session.hpp
         ${PROJECT_SOURCE_DIR}/include/ks/dht/session.hpp
-        ${PROJECT_SOURCE_DIR}/include/ks/dht/session_base.hpp
 )
 
 set_target_properties(ks-dht
@@ -44,7 +36,7 @@ set_target_properties(ks-dht
 
 target_link_libraries(ks-dht
   PRIVATE
-    Boost::headers
+    asio::asio
     KsCrypto::ks-crypto
     KsSerialization::ks-serialization
     Threads::Threads

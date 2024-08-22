@@ -24,14 +24,25 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <vector>
+#include <memory>
 
 namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
-using buffer = std::vector<std::uint8_t>;
+struct message_buffer final
+{
+  static constexpr std::size_t size{UINT16_MAX};
+
+  std::unique_ptr<std::byte[]> data{std::make_unique_for_overwrite<std::byte[]>(size)}
+};
+
+constexpr std::span<std::byte, message_buffer::size> to_span(message_buffer & buffer) noexcept
+{
+  return {buffer.data, message_buffer::size};
+}
 
 } // namespace detail
 } // namespace abiv1
