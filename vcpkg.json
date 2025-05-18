@@ -1,7 +1,8 @@
 {
   "dependencies": [
     "gtest",
-    "asio",
+    "boost-asio",
+    "boost-cobalt",
     "ks-cmake-helpers",
     "ks-fatal",
     "ks-serialization"

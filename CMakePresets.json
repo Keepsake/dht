@@ -3,9 +3,19 @@
   "configurePresets": [
     {
       "name": "default",
-      "binaryDir": "${sourceDir}/out/",
+      "binaryDir": "${sourceDir}/build-${presetName}/",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-      "generator": "Ninja Multi-Config"
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_DEBUG_POSTFIX": {
+          "type": "STRING",
+          "value": "d"
+        },
+        "VCPKG_MANIFEST_MODE": {
+          "type": "BOOL",
+          "value": "OFF"
+        }
+      }
     },
     {
       "name": "local",
@@ -19,27 +29,39 @@
           "type": "BOOL",
           "value": "OFF"
         }
-      },
-      "environment": {
-        "CXXFLAGS": "-fsanitize=address -fno-omit-frame-pointer"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "default",
+      "name": "debug",
       "configurePreset": "default",
       "configuration": "Debug"
     },
     {
-      "name": "local",
+      "name": "release",
+      "configurePreset": "default",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "local-debug",
       "configurePreset": "local",
       "configuration": "Debug"
+    },
+    {
+      "name": "local-release",
+      "configurePreset": "local",
+      "configuration": "Release"
+    },
+    {
+      "name": "local-relwithdebinfo",
+      "configurePreset": "local",
+      "configuration": "RelWithDebInfo"
     }
   ],
   "testPresets": [
     {
-      "name": "default",
+      "name": "debug",
       "output": {
         "outputOnFailure": true
       },
@@ -51,9 +73,21 @@
     },
     {
       "name": "local",
-      "inherits": "default",
+      "inherits": "debug",
       "configurePreset": "local",
       "configuration": "Debug"
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "configurations": [
+        "Debug", "RelWithDebInfo"
+      ],
+      "generators": [
+        "RPM"
+      ]
     }
   ],
   "workflowPresets": [
@@ -66,11 +100,15 @@
         },
         {
           "type": "build",
-          "name": "default"
+          "name": "release"
+        },
+        {
+          "type": "build",
+          "name": "debug"
         },
         {
           "type": "test",
-          "name": "default"
+          "name": "debug"
         }
       ]
     },
@@ -83,7 +121,15 @@
         },
         {
           "type": "build",
-          "name": "local"
+          "name": "local-release"
+        },
+        {
+          "type": "build",
+          "name": "local-relwithdebinfo"
+        },
+        {
+          "type": "build",
+          "name": "local-debug"
         },
         {
           "type": "test",

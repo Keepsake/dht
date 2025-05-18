@@ -90,6 +90,18 @@ struct message final
   bool operator==(message const&) const noexcept = default;
 };
 
+struct const_message_view final
+{
+  message_header const& header;
+  message_body const& body;
+};
+
+struct message_view final
+{
+  message_header & header;
+  message_body & body;
+};
+
 } // namespace detail
 } // namespace abiv1
 } // namespace ks::dht
@@ -121,25 +133,16 @@ struct ks::serialization::serializer<ks::dht::detail::message_header> final
 };
 
 template<>
-struct ks::serialization::serializer<
-    ks::dht::detail::ping_request_body> final
+struct ks::serialization::serializer<ks::dht::detail::ping_request_body> final
 {
-  std::error_code operator()(auto& archive, auto& body) const
-  {
-    return {};
-  }
+  std::error_code operator()(auto& archive, auto& body) const { return {}; }
 };
 
 template<>
-struct ks::serialization::serializer<
-    ks::dht::detail::ping_response_body> final
+struct ks::serialization::serializer<ks::dht::detail::ping_response_body> final
 {
-  std::error_code operator()(auto& archive, auto& body) const
-  {
-    return {};
-  }
+  std::error_code operator()(auto& archive, auto& body) const { return {}; }
 };
-
 
 template<>
 struct ks::serialization::serializer<
@@ -192,8 +195,25 @@ struct ks::serialization::serializer<
 };
 
 template<>
-struct ks::serialization::serializer<
-    ks::dht::detail::message> final
+struct ks::serialization::serializer<ks::dht::detail::message> final
+{
+  std::error_code operator()(auto& archive, auto& message) const
+  {
+    return serialize(archive, message.header, message.body);
+  }
+};
+
+template<>
+struct ks::serialization::serializer<ks::dht::detail::const_message_view> final
+{
+  std::error_code operator()(auto& archive, auto& message) const
+  {
+    return serialize(archive, message.header, message.body);
+  }
+};
+
+template<>
+struct ks::serialization::serializer<ks::dht::detail::message_view> final
 {
   std::error_code operator()(auto& archive, auto& message) const
   {

@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <chrono>
+#include <cstddef>
+
+namespace ks::dht {
+inline namespace abiv1 {
+namespace detail {
+
+// k
+inline std::size_t constexpr bucket_size{ @KS_DHT_BUCKET_SIZE@ };
+// a
+inline std::size_t constexpr parallel_request_count{ @KS_DHT_PARALLEL_REQUEST_COUNT@ };
+// b
+inline std::size_t constexpr excluding_range_depth{ @KS_DHT_EXCLUDING_RANGE_DEPTH@ };
+// c
+inline std::size_t constexpr redundant_save_count{ @KS_DHT_REDUNDANT_SAVE_COUNT@ };
+
+inline std::chrono::milliseconds constexpr request_timeout{ @KS_DHT_REQUEST_TIMEOUT_MS@ };
+
+} // namespace detail
+} // namespace abiv1
+} // namespace ks::dht

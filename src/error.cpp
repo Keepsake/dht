@@ -55,6 +55,8 @@ struct dht_category final : std::error_category
         return "timer malfunction";
       case error::already_running:
         return "already running";
+      case error::wrong_response_type:
+        return "wrong response type";
       default:
         return "unknown error";
     }

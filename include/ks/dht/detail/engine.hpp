@@ -83,16 +83,13 @@ public:
                   Completion&& completion)
   {
     auto init = [this](auto handler, auto const& endpoints) {
-      co_spawn(executor_,
-               start_receiving<endpoint_v4>(),
-               rethrow_exception);
+      co_spawn(executor_, start_receiving<endpoint_v4>(), rethrow_non_null_exception);
+
+      co_spawn(executor_, start_receiving<endpoint_v6>(), rethrow_non_null_exception);
 
       co_spawn(executor_,
-               start_receiving<endpoint_v6>(),
-               rethrow_exception);
-
-      co_spawn(executor_,
-               start_discover_neighbors_task(my_id_, tracker_, routing_table_, endpoints),
+               start_discover_neighbors_task(
+                   my_id_, tracker_, routing_table_, endpoints),
                forward_error(std::move(handler)));
     };
 
@@ -104,7 +101,7 @@ public:
   auto async_stop(Completion&& completion) noexcept
   {
     auto init = [this](auto handler) {
-      auto stop = [this, handler=std::move(handler)] mutable {
+      auto stop = [this, handler = std::move(handler)] mutable {
         network_.stop();
         std::move(handler)(std::error_code{});
       };
@@ -124,12 +121,10 @@ public:
     auto init = [this](auto handler,
                        std::span<std::byte const> key,
                        std::span<std::byte const> data) {
-      co_spawn(executor_,
-               start_store_value_task(id{key},
-                                      data,
-                                      tracker_,
-                                      routing_table_),
-               forward_error(std::move(handler)));
+      co_spawn(
+          executor_,
+          start_store_value_task(id{ key }, data, tracker_, routing_table_),
+          forward_error(std::move(handler)));
     };
 
     return asio::async_initiate<Completion, void(std::error_code)>(
@@ -137,23 +132,17 @@ public:
   }
 
   template<typename Completion>
-  auto async_load(std::span<std::byte const> key,
-                  std::span<std::byte> buffer,
-                  Completion&& completion)
+  auto async_load(std::span<std::byte const> key, Completion&& completion)
   {
-    auto init = [this](auto handler,
-                       std::span<std::byte const> key,
-                       std::span<std::byte const> data) {
+    auto init = [this](auto handler, std::span<std::byte const> key) {
       co_spawn(executor_,
-               start_find_value_task(id{key},
-                                     data,
-                                     tracker_,
-                                     routing_table_),
+               async_find_value(key, tracker_, routing_table_),
                forward_error(std::move(handler)));
     };
 
-    return asio::async_initiate<Completion, void(std::error_code)>(
-        std::move(init), std::forward<Completion>(completion), keys, data);
+    return asio::async_initiate<Completion,
+                                void(std::error_code, std::vector<std::byte>)>(
+        std::move(init), std::forward<Completion>(completion), key);
   }
 
 private:
@@ -164,65 +153,72 @@ private:
   using value_store_type = value_store<id, data_type>;
 
 private:
-  void process_new_message(endpoint sender,
-                           message & message)
+  void process_new_message(endpoint sender, message& message)
   {
     routing_table_.push(message.header.source_id, sender);
 
-    auto on_body = [&](auto & body) {
+    auto on_body = [&](auto& body) {
       handle_message(sender, message.header, body);
     };
 
     std::visit(std::move(on_body), message.body);
   }
 
-  void handle_message(endpoint const& sender, message_header const& header, auto & body)
+  void handle_message(endpoint const& sender,
+                      message_header const& header,
+                      auto& body)
   {
     tracker_.handle_new_response(sender, header, body);
   }
 
-  void handle_message(endpoint const& sender, message_header const& header, ping_request_body & /* body */)
+  void handle_message(endpoint const& sender,
+                      message_header const& header,
+                      ping_request_body& /* body */)
   {
     tracker_.send_response(sender, header.random_token, ping_request_body{});
   }
 
-  void handle_message(endpoint const& /* sender */, message_header const& /* header */, store_value_request_body & body)
+  void handle_message(endpoint const& /* sender */,
+                      message_header const& /* header */,
+                      store_value_request_body& body)
   {
     value_store_[body.data_key_hash] = std::move(request.data_value);
   }
 
   void handle_message(endpoint const& sender,
                       message_header const& header,
-                      find_peer_request_body & body)
+                      find_peer_request_body& body)
   {
     send_find_peer_response(sender, header, body.peer_to_find);
   }
 
   void handle_message(endpoint const& sender,
                       message_header const& header,
-                      find_value_request_body & body)
+                      find_value_request_body& body)
   {
     auto found = value_store_.find(request.value_to_find);
     if (found == value_store_.end())
       send_find_peer_response(sender, header, request.value_to_find);
     else
-      tracker_.send_response(sender, header.random_token, find_peer_response_body{
-        .data = found->second
-      });
+      tracker_.send_response(sender,
+                             header.random_token,
+                             find_peer_response_body{ .data = found->second });
   }
 
   void send_find_peer_response(endpoint const& sender,
-                      message_header const& header,
-                      id const& id)
+                               message_header const& header,
+                               id const& id)
   {
-    auto peers = std::ranges::subrange{routing_table_.find(id),
-                                       routing_table_.end()}
-          | std::views::take(ROUTING_TABLE_BUCKET_SIZE)
-          | std::ranges::to<std::vector<peer>>();
+    auto peers =
+        std::ranges::subrange{ routing_table_.find(id), routing_table_.end() } |
+        std::views::take(ROUTING_TABLE_BUCKET_SIZE) |
+        std::ranges::to<std::vector<peer>>();
 
-    tracker_.send_response(sender, header.random_token, find_peer_response_body{
-      .peers = std::move(peers),
-    });
+    tracker_.send_response(sender,
+                           header.random_token,
+                           find_peer_response_body{
+                               .peers = std::move(peers),
+                           });
   }
 
   id get_closest_neighbor_id(void)
@@ -268,20 +264,21 @@ private:
 
   static constexpr auto forward_error(auto handler) noexcept
   {
-    return [handler=std::move(handler)] mutable (std::exception_ptr e, std::error_code failure) {
-      rethrow_exception(e);
-      std::move(handler)(failure);
+    return [handler = std::move(handler)]<typename Arg> mutable(
+               std::exception_ptr e, Arg&& arg) {
+      rethrow_non_null_exception(e);
+      std::apply(std::move(handler), std::forward<Arg>(arg));
     };
   }
 
   template<typename Sender>
-  asio::awaitable<void, executor_type>
-  start_receiving()
+  asio::awaitable<void, executor_type> start_receiving()
   {
     Sender sender;
     detail::message message;
     for (;;) {
-      auto const failure = co_await network_.async_receive_from(sender, message);
+      auto const failure =
+          co_await network_.async_receive_from(sender, message);
       if (failure) [[unlikely]]
         break;
 

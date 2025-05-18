@@ -3,58 +3,56 @@
 #pragma once
 
 #include <utility>
-
-#include <asio/buffer.hpp>
-#include <asio/execution/executor.hpp>
-#include <asio/ip/v6_only.hpp>
+#ifdef _MSC_VER
+# include <system_error>
+#endif
 
 namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
 #ifdef _MSC_VER
-template<typename Completion>
+
+template<typename OnComplete>
 constexpr void
-async_receive_from(asio::ip::udp::socket& socket,
-                   asio::ip::udp::endpoint const& endpoint,
-                   auto buffer,
-                   Completion&& completion)
+async_receive_from(auto& socket,
+                   auto& endpoint,
+                   auto& message,
+                   OnComplete on_complete)
 {
-  auto on_read = [&socket,
-                  &endpoint,
-                  buffer,
-                  completion = std::forward<Completion>(completion)](
-                     std::error_code failure,
-                     std::size_t bytes_received) mutable {
-    // On Windows, an UDP socket may return connection_reset
-    // to inform application that a previous send by this socket
-    // has generated an ICMP port unreachable.
-    // https://msdn.microsoft.com/en-us/library/ms740120.aspx
-    // Ignore it and schedule another read.
-    if (failure == std::errc::connection_reset) {
-      async_receive_from(socket, endpoint, buffer, std::move(completion));
-      return;
-    }
+  auto on_receive =
+      [&socket, &endpoint, &message, on_complete = std::move(on_complete)](
+          std::error_code failure) mutable {
+        // On Windows, an UDP socket may return connection_reset
+        // to inform application that a previous send by this socket
+        // has generated an ICMP port unreachable.
+        // https://msdn.microsoft.com/en-us/library/ms740120.aspx
+        // Ignore it and schedule another read.
+        if (failure == std::errc::connection_reset) {
+          async_receive_from(socket, endpoint, message, std::move(on_complete));
+          return;
+        }
 
-    std::move(completion)(failure, bytes_received);
-  };
+        std::move(on_complete)(failure);
+      };
 
-  socket.async_receive_from(buffer, endpoint, std::move(on_read));
+  socket.async_receive_from(endpoint, message, std::move(on_receive));
 }
 
 #else
-template<typename Completion>
+
+template<typename OnReceive>
 constexpr void
 async_receive_from(auto& socket,
-                   asio::ip::udp::endpoint const& endpoint,
-                   auto buffer,
-                   Completion&& completion)
+                   auto& endpoint,
+                   auto& message,
+                   OnReceive on_receive)
 {
-  socket.async_receive_from(
-      buffer, endpoint, std::forward<Completion>(completion));
+  socket.async_receive_from(endpoint, message, std::move(on_receive));
 }
 
 #endif
+
 } // namespace detail
 } // namespace abiv1
 } // namespace ks::dht

@@ -65,16 +65,14 @@ public:
   }
 
   template<typename Completion>
-  auto async_load(std::span<std::byte const> key,
-                  std::span<std::byte> buffer,
-                  Completion&& completion)
+  auto async_load(std::span<std::byte const> key, Completion&& completion)
   {
     return engine_.async_load(
         key, buffer, std::forward<Completion>(completion));
   }
 
 private:
-  using engine_type = detail::engine<executor_type, detail:socket>;
+  using engine_type = detail::engine<executor_type, detail : socket>;
 
 private:
   engine_type engine_;

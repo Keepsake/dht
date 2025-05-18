@@ -2,13 +2,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
+#include <charconv>
 #include <cstdint>
 #include <functional>
-#include <iomanip>
-#include <iterator>
-#include <sstream>
-#include <utility>
 
 #include <openssl/sha.h>
 
@@ -22,63 +18,75 @@ namespace detail {
 namespace {
 
 id::block_type
-to_block(std::string const& s)
+hex_to_block(std::string_view value)
 {
-  auto is_id_digit = [](int c) { return std::isxdigit(c); };
-  if (!std::all_of(s.begin(), s.end(), is_id_digit))
+  id::block_type result;
+  auto begin = value.data(), end = begin + value.size();
+  auto [ptr, failure] = std::from_chars(begin, end, result, 16);
+
+  if (ptr != end or failure != std::errc{}) [[unlikely]]
     throw std::system_error{ error::invalid_id };
 
-  std::stringstream converter{ s };
-
-  std::uint64_t result;
-  converter >> std::hex >> result;
-
-  assert(!converter.fail() && "hexa to decimal conversion failed");
-
-  return static_cast<id::block_type>(result);
+  return result;
 }
 
 } // namespace
 
+id::id() noexcept = default;
+
 id::id(std::default_random_engine& random_engine)
 {
-  // The output of the generator is treated as boolean value.
-  std::uniform_int_distribution<> distribution(
-      std::numeric_limits<block_type>::min(),
-      std::numeric_limits<block_type>::max());
+  using limits = std::numeric_limits<block_type>;
+  std::uniform_int_distribution<block_type> distribution(limits::min(),
+                                                         limits::max());
 
-  std::generate(blocks_.begin(), blocks_.end(), [&] {
-    return distribution(random_engine);
-  });
+  std::ranges::generate(blocks_, [&] { return distribution(random_engine); });
 }
 
-id::id(std::string s)
+id::id(std::string_view value)
 {
-  static constexpr std::size_t hex_char_per_block = id::byte_per_block * 2;
-  static constexpr std::size_t string_max_size =
-      blocks_count * hex_char_per_block;
+  constexpr std::size_t hex_char_per_block = byte_per_block * 2U;
 
-  if (s.size() > string_max_size)
-    throw std::system_error{ error::invalid_id };
+  auto out = blocks_.rbegin();
 
-  // Insert leading 0.
-  s.insert(s.begin(), string_max_size - s.size(), '0');
+  while (not value.empty()) {
+    if (out == blocks_.rend()) [[unlikely]]
+      throw std::system_error{ error::invalid_id };
 
-  assert(s.size() == string_max_size && "string padding failed");
-  for (std::size_t i = 0; i != blocks_count; ++i)
-    blocks_[i] = to_block(s.substr(i * hex_char_per_block, hex_char_per_block));
+    auto const count = std::min(value.size(), hex_char_per_block);
+    *out++ = hex_to_block(value.substr(value.size() - count));
+    value.remove_suffix(count);
+  }
+
+  std::ranges::fill(out, blocks_.rend(), 0U);
 }
 
 id::id(std::span<std::byte const> value) noexcept
 {
   // Use OpenSSL crypto hash.
-  SHA1(reinterpret_cast<std::uint8_t const*>(value.data()),
-       value.size(),
-       blocks_.data());
+  SHA256(reinterpret_cast<std::uint8_t const*>(value.data()),
+         value.size(),
+         reinterpret_cast<std::uint8_t*>(blocks_.data()));
+}
+
+bool
+id::operator[](std::size_t index) const noexcept
+{
+  assert(index < bit_size);
+
+  constexpr auto msb = block_type{ 1U } << (bit_per_block - 1U);
+
+  auto const bit_index = index % bit_per_block;
+  auto const mask = msb >> bit_index;
+
+  auto const block_index = index / bit_per_block;
+  assert(block_index < blocks_.size());
+
+  return blocks_[block_index] & mask;
 }
 
 id
-id::operator-(id const& other) const noexcept
+id::operator^(id const& other) const noexcept
 {
   id result;
 
@@ -92,6 +100,45 @@ bool
 id::operator<(id const& other) const noexcept
 {
   return std::ranges::lexicographical_compare(blocks_, other.blocks_);
+}
+
+id::const_iterator
+id::begin() const noexcept
+{
+  return { this, 0 };
+}
+
+id::const_iterator
+id::end() const noexcept
+{
+  return { this, id::bit_size };
+}
+
+std::reverse_iterator<id::const_iterator>
+id::rbegin() const noexcept
+{
+  return std::make_reverse_iterator(end());
+}
+
+std::reverse_iterator<id::const_iterator>
+id::rend() const noexcept
+{
+  return std::make_reverse_iterator(begin());
+}
+
+std::size_t
+id::countl_zero() const noexcept
+{
+  std::size_t total{};
+
+  for (block_type const block : blocks_) {
+    std::size_t const count = std::countl_zero(block);
+    total += count;
+    if (count != bit_per_block)
+      break;
+  }
+
+  return total;
 }
 
 } // namespace detail

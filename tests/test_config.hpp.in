@@ -1,0 +1,3 @@
+#pragma once
+
+#define KS_TESTS_DIR "@CMAKE_CURRENT_SOURCE_DIR@" 

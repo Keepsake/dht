@@ -2,12 +2,17 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <format>
+#include <functional>
+#include <iterator>
 #include <random>
+#include <ranges>
 #include <span>
-#include <string>
+#include <string_view>
 
 #include <ks/serialization/serialize.hpp>
 
@@ -17,169 +22,141 @@ namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
-///
 KS_DHT_EXPORT class id final
 {
 public:
-  ///
-  static constexpr std::size_t bit_size = 160;
+  static constexpr std::size_t bit_size = 256U;
 
-  ///
-  using block_type = std::uint8_t;
+  using block_type = std::uint64_t;
 
-  /**
-   *
-   */
-  template<typename BlockType>
-  struct abstract_reference final
-  {
-    /**
-     *
-     */
-    explicit operator bool const() const noexcept
-    {
-      return (current_block_ & mask_) != 0;
-    }
-
-    /**
-     *
-     */
-    abstract_reference& operator=(bool value) noexcept
-    {
-      if (value)
-        current_block_ |= mask_;
-      else
-        current_block_ &= ~mask_;
-
-      return *this;
-    }
-
-    /**
-     *
-     */
-    template<typename OtherBlockType>
-    bool operator==(abstract_reference<OtherBlockType> const& o) const noexcept
-    {
-      return static_cast<bool>(o) == static_cast<bool>(*this);
-    }
-
-    ///
-    BlockType& current_block_;
-    ///
-    block_type const mask_;
-  };
-
-  ///
-  using reference = abstract_reference<block_type>;
-
-  ///
-  using const_reference = abstract_reference<block_type const>;
+  class const_iterator;
 
 public:
-  /**
-   *  @brief Construct a null id.
-   */
-  constexpr id()
-    : blocks_()
-  {
-  }
+  id() noexcept;
 
-  /**
-   *  @brief Construct a random id.
-   */
   explicit id(std::default_random_engine& random_engine);
 
-  /**
-   *  @brief Construct an id from a string representation.
-   */
-  explicit id(std::string value);
+  explicit id(std::string_view value);
 
-  /**
-   *  @brief Construct an id by hashing a value.
-   */
   explicit id(std::span<std::byte const> value) noexcept;
 
-  /**
-   *
-   */
   auto operator<=>(id const& o) const noexcept = default;
 
-  /**
-   *  @brief Return a const reference to a bit of the id.
-   *  @param index The index of the bit (from 0 to bit_size - 1).
-   *  @note Index 0 is the msb.
-   */
-  const_reference operator[](std::size_t index) const
-  {
-    return const_reference{ get_block(index), get_mask(index) };
-  }
+  // index 0 is MSB
+  bool operator[](std::size_t index) const noexcept;
 
-  /**
-   *  @brief Return a reference to a bit of the id.
-   *  @param index The index of the bit (from 0 to bit_size - 1).
-   *  @note Index 0 is the msb.
-   */
-  reference operator[](std::size_t index)
-  {
-    return reference{ get_block(index), get_mask(index) };
-  }
-
-  id operator-(id const& other) const noexcept;
+  id operator^(id const& other) const noexcept;
 
   bool operator<(id const& other) const noexcept;
 
+  const_iterator begin() const noexcept;
+  const_iterator end() const noexcept;
+
+  std::reverse_iterator<const_iterator> rbegin() const noexcept;
+  std::reverse_iterator<const_iterator> rend() const noexcept;
+
+  std::size_t countl_zero() const noexcept;
+
 private:
-  ///
   static constexpr std::size_t byte_per_block = sizeof(block_type);
-
-  ///
-  static constexpr std::size_t bit_per_block = byte_per_block * 8;
-
-  ///
+  static constexpr std::size_t bit_per_block = byte_per_block * 8U;
   static constexpr std::size_t blocks_count = bit_size / bit_per_block;
 
-  ///
   using blocks_type = std::array<block_type, blocks_count>;
 
   friend ks::serialization::serializer<id>;
-
   friend std::formatter<id>;
+  friend std::hash<id>;
 
 private:
-  /**
-   *
-   */
-  block_type const& get_block(std::size_t index) const noexcept
-  {
-    return blocks_[index / bit_per_block];
-  }
-
-  block_type& get_block(std::size_t index) noexcept
-  {
-    return blocks_[index / bit_per_block];
-  }
-
-  /**
-   *
-   */
-  static block_type get_mask(std::size_t index) noexcept
-  {
-    return block_type{ 1 } << (bit_per_block - 1U - index % bit_per_block);
-  }
-
-private:
-  ///
-  blocks_type blocks_;
+  blocks_type blocks_{};
 };
 
-/**
- *
- */
-inline id
-distance(id const& a, id const& b)
+class id::const_iterator final
 {
-  return a - b;
-}
+public:
+  using difference_type = std::ptrdiff_t;
+  using value_type = bool;
+  using reference = bool;
+  using iterator_category = std::random_access_iterator_tag;
+
+public:
+  constexpr const_iterator() noexcept = default;
+
+  constexpr const_iterator(id const* id, difference_type index) noexcept
+    : id_{ id }
+    , index_{ index }
+  {
+  }
+
+  auto operator<=>(const_iterator const& o) const noexcept = default;
+
+  constexpr value_type operator*() const noexcept { return (*id_)[index_]; }
+
+  constexpr const_iterator& operator+=(difference_type diff) noexcept
+  {
+    index_ += diff;
+    return *this;
+  }
+
+  constexpr const_iterator operator+(difference_type diff) noexcept
+  {
+    return { id_, index_ + diff };
+  }
+
+  constexpr const_iterator& operator++() noexcept
+  {
+    ++index_;
+    return *this;
+  }
+
+  constexpr const_iterator operator++(int) noexcept
+  {
+    auto old{ *this };
+    ++index_;
+    return old;
+  }
+
+  constexpr const_iterator& operator-=(difference_type diff) noexcept
+  {
+    index_ -= diff;
+    return *this;
+  }
+
+  constexpr const_iterator operator-(difference_type diff) noexcept
+  {
+    return { id_, index_ - diff };
+  }
+
+  constexpr const_iterator& operator--() noexcept
+  {
+    --index_;
+    return *this;
+  }
+
+  constexpr const_iterator operator--(int) noexcept
+  {
+    auto old{ *this };
+    --index_;
+    return old;
+  }
+
+  constexpr difference_type operator-(const_iterator const& o) const noexcept
+  {
+    return index_ - o.index_;
+  }
+
+  constexpr reference operator[](difference_type diff) const noexcept
+  {
+    return (*id_)[index_ + diff];
+  }
+
+  const_iterator& operator=(const_iterator const&) noexcept = default;
+
+private:
+  id const* id_;
+  difference_type index_;
+};
 
 } // namespace detail
 } // namespace abiv1
@@ -203,15 +180,36 @@ struct std::formatter<ks::dht::detail::id> final
 
   auto format(id const& id, auto& ctx) const
   {
-    // Skip leading 0.
     auto is_not_0 = [](auto b) { return b != 0; };
     auto i = std::ranges::find_if(id.blocks_, is_not_0);
 
-    static constexpr std::size_t nibble_count = id::bit_per_block / 4U;
+    constexpr std::size_t hex_char_per_block = id::byte_per_block * 2U;
 
     for (auto e = id.blocks_.end(); i != e; ++i)
-      ctx.advance_to(std::format_to(ctx.out(), "{:0{}x}", *i, nibble_count));
+      ctx.advance_to(
+          std::format_to(ctx.out(), "{:0{}x}", *i, hex_char_per_block));
 
     return ctx.out();
+  }
+};
+
+template<>
+struct std::hash<ks::dht::detail::id> final
+{
+  using value_type = ks::dht::detail::id;
+
+  std::size_t operator()(value_type const& id) const
+  {
+    std::hash<value_type::block_type> hasher{};
+
+    auto hash_combine = [](std::size_t state, std::size_t hash) {
+      constexpr auto golden_ratio = 0x9e3779b9U;
+      return state ^ hash + golden_ratio + (state << 6) + (state >> 2);
+    };
+
+    std::size_t initial_state{};
+    return std::ranges::fold_left(id.blocks_ | std::views::transform(hasher),
+                                  initial_state,
+                                  hash_combine);
   }
 };

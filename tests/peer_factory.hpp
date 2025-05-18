@@ -12,10 +12,8 @@ inline ks::dht::endpoint
 create_endpoint(std::string const& ip = std::string{ "127.0.0.1" },
                 std::uint16_t const& service = 12345)
 {
-  return ks::dht::endpoint_v4{
-    .ip = asio::ip::address_v4::from_string(ip),
-    .port = service
-  };
+  return ks::dht::endpoint_v4{ .ip = asio::ip::address_v4::from_string(ip),
+                               .port = service };
 }
 
 inline ks::dht::detail::peer

@@ -1,19 +1,31 @@
 # SPDX-License-Identifier: MIT
 
+include(CheckSourceCompiles)
+
+configure_file(test_config.hpp.in test_config.hpp @ONLY)
+
 add_executable(ks-dht-unit-tests
-  common.cpp
-  test_endpoint.cpp
-  test_error.cpp
-  test_id.cpp
-  test_message.cpp
-  test_peer.cpp
-  test_routing_table.cpp
-  test_socket.cpp
+  async_queue.test.cpp
+  bucket.test.cpp
+  candidate_tracker.test.cpp
+  discover_neighbors_task.test.cpp
+  endpoint.test.cpp
+  error.test.cpp
+  find_value_task.test.cpp
+  id.test.cpp
+  message.test.cpp
+  network.test.cpp
+  notify_peer_task.test.cpp
+  peer.test.cpp
+  request_tracker.test.cpp
+  routing_table.test.cpp
+  scope_exit.test.cpp
+  socket.test.cpp
 )
 
-target_compile_definitions(ks-dht-unit-tests
+target_include_directories(ks-dht-unit-tests
   PRIVATE
-    -DTESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 target_link_libraries(ks-dht-unit-tests

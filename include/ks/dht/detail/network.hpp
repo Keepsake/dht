@@ -2,75 +2,65 @@
 
 #pragma once
 
-#include <ks/dht/detail/socket.hpp>
+#include <utility>
+#include <variant>
+
 #include <ks/dht/endpoint.hpp>
 
 namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
-/**
- *
- */
-template<typename Executor, template<typename, typename> Socket>
+template<typename SocketV4, typename SocketV6>
 class network final
 {
 public:
-  /**
-   *
-   */
-  network(Executor const& executor,
-          endpoint_v4 const& endpoint_v4,
-          endpoint_v6 const& endpoint_v6)
-    : socket_v4_{ executor, endpoint_v4 }
-    , socket_v6_{ executor, endpoint_v6 }
+  explicit network(SocketV4 socket_v4, SocketV6 socket_v6)
+    : socket_v4_{ std::forward<SocketV4>(socket_v4) }
+    , socket_v6_{ std::forward<SocketV6>(socket_v6) }
   {
   }
 
-  /**
-   *
-   */
-  network(network const&) = delete;
-
-  /**
-   *
-   */
-  network& operator=(network const&) = delete;
-
-  /**
-   *
-   */
-  auto async_send_to(endpoint_v4 const& endpoint,
-                     auto const& message)
+  template<typename CompletionToken>
+  void async_send_to(endpoint const& endpoint,
+                     auto const& message,
+                     CompletionToken token)
   {
-    return socket_v4_.async_send_to(endpoint, message);
+    std::visit(
+        [&](auto const& e) { async_send_to(e, message, std::move(token)); },
+        endpoint);
   }
 
-  /**
-   *
-   */
-  auto async_send_to(endpoint_v6 const& endpoint,
-                     auto const& message)
+  template<typename CompletionToken>
+  void async_send_to(endpoint_v4 const& endpoint,
+                     auto const& message,
+                     CompletionToken token)
   {
-    return socket_v6_.async_send_to(endpoint, message);
+    socket_v4_.async_send_to(endpoint, message, std::move(token));
   }
 
-  /**
-   *
-   */
-  auto async_receive_from(endpoint_v4 & endpoint,
-                          message & message)
+  template<typename CompletionToken>
+  void async_send_to(endpoint_v6 const& endpoint,
+                     auto const& message,
+                     CompletionToken token)
   {
-    return socket_v4_.async_receive_from(endpoint, message);
+    socket_v6_.async_send_to(endpoint, message, std::move(token));
   }
 
-  /**
-   *
-   */
-  auto async_receive_from(endpoint_v6 & endpoint,
-                          auto & message)
+  template<typename CompletionToken>
+  void async_receive_from(endpoint_v4& endpoint,
+                          auto& message,
+                          CompletionToken token)
   {
-    return socket_v6_.async_receive_from(endpoint, message);
+    socket_v4_.async_receive_from(endpoint, message, std::move(token));
+  }
+
+  template<typename CompletionToken>
+  void async_receive_from(endpoint_v6& endpoint,
+                          auto& message,
+                          CompletionToken token)
+  {
+    socket_v6_.async_receive_from(endpoint, message, std::move(token));
   }
 
   void stop()
@@ -80,9 +70,12 @@ public:
   }
 
 private:
-  Socket<Executor, endpoint_v4> socket_v4_;
-  Socket<Executor, endpoint_v6> socket_v6_;
+  SocketV4 socket_v4_;
+  SocketV6 socket_v6_;
 };
+
+template<typename SocketV4, typename SocketV6>
+network(SocketV4&&, SocketV6&&) -> network<SocketV4, SocketV6>;
 
 } // namespace detail
 } // namespace abiv1

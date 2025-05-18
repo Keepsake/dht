@@ -2,18 +2,13 @@
 
 #pragma once
 
-#include <exception>
+#include <chrono>
 
 namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
-inline void
-rethrow_non_null_exception(std::exception_ptr ptr)
-{
-  if (ptr) [[unlikely]]
-    std::rethrow_exception(ptr);
-}
+using clock = std::chrono::steady_clock;
 
 } // namespace detail
 } // namespace abiv1

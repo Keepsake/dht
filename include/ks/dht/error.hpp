@@ -50,6 +50,7 @@ enum class error
   timer_malfunction,
   /// Another call to session::run() is still blocked.
   already_running,
+  wrong_response_type,
 };
 
 KS_DHT_EXPORT std::error_category const&

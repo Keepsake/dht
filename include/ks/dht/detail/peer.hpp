@@ -3,6 +3,7 @@
 #pragma once
 
 #include <format>
+#include <system_error>
 
 #include <ks/serialization/serialize.hpp>
 
@@ -13,10 +14,13 @@ namespace ks::dht {
 inline namespace abiv1 {
 namespace detail {
 
+using peer_id = id;
+using peer_endpoint = endpoint;
+
 struct peer final
 {
-  id id;
-  endpoint endpoint;
+  peer_id id;
+  peer_endpoint endpoint;
 
   bool operator==(peer const&) const noexcept = default;
 };
